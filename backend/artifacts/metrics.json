@@ -1,0 +1,78 @@
+{
+  "version": "v2.4-TestRun",
+  "algorithm": "RandomForest Classifier & Regressor Ensemble (Scikit-Learn)",
+  "training_date": "2026-10-29 19:10:43",
+  "evaluation_date": "2026-10-29 19:10:43",
+  "training_samples_count": 1200,
+  "test_samples_count": 300,
+  "mae": 2.52,
+  "rmse": 3.07,
+  "r2_score": 0.364,
+  "accuracy": 69.3,
+  "precision": 50.5,
+  "recall": 55.9,
+  "f1_score": 53.1,
+  "roc_auc": 0.69,
+  "confusion_matrix": [
+    [
+      156,
+      51
+    ],
+    [
+      41,
+      52
+    ]
+  ],
+  "class_distribution": {
+    "negative_stable_samples": 1033,
+    "positive_deterioration_samples": 467
+  },
+  "baseline_dummy_f1": 34.0,
+  "linear_logreg_f1": 42.4,
+  "feature_importance": [
+    {
+      "feature": "historical_deterioration_score",
+      "importance": 0.2013
+    },
+    {
+      "feature": "days_since_last_inspection",
+      "importance": 0.1508
+    },
+    {
+      "feature": "days_since_last_repair",
+      "importance": 0.1399
+    },
+    {
+      "feature": "traffic_weather_interaction",
+      "importance": 0.1218
+    },
+    {
+      "feature": "damage_severity_score",
+      "importance": 0.1034
+    },
+    {
+      "feature": "time_since_last_repair_score",
+      "importance": 0.0786
+    },
+    {
+      "feature": "recent_report_frequency_score",
+      "importance": 0.0598
+    },
+    {
+      "feature": "weather_exposure_score",
+      "importance": 0.053
+    },
+    {
+      "feature": "surface_decay_factor",
+      "importance": 0.0478
+    },
+    {
+      "feature": "traffic_intensity_score",
+      "importance": 0.0435
+    }
+  ],
+  "drift_status": "Stable",
+  "is_active": true,
+  "status": "Production Active",
+  "notes": "Trained on municipal feature set with 80/20 stratified split. Tested on holdout evaluation cohort."
+}

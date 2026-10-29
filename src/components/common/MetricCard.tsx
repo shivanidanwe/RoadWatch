@@ -26,60 +26,65 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   return (
     <div
-      className={`relative bg-white rounded-xl border p-5 shadow-sm transition-all hover:shadow-md ${
-        highlightCritical ? 'border-red-200 bg-red-50/20' : 'border-[#E2E8F0]'
+      className={`relative bg-[#211735] rounded-xl border p-4 shadow-sm transition-all hover:border-[#8B5CF6]/50 min-w-0 overflow-hidden flex flex-col justify-between ${
+        highlightCritical ? 'border-[#FB7185]/60 bg-rose-950/20' : 'border-[#3B2D53]'
       }`}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-[#64748B] uppercase tracking-wider">{title}</span>
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[11px] font-semibold text-[#B9AECF] uppercase tracking-wider truncate block">
+              {title}
+            </span>
             {tooltip && (
-              <div className="group relative cursor-pointer text-[#94A3B8] hover:text-[#64748B]">
+              <div className="group relative cursor-pointer text-[#B9AECF]/70 hover:text-[#F5F3FF] shrink-0">
                 <Info className="w-3.5 h-3.5" />
-                <div className="pointer-events-none absolute left-1/2 -top-8 -translate-x-1/2 hidden group-hover:block z-20 whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-[11px] font-normal text-white shadow-lg">
+                <div className="pointer-events-none absolute left-1/2 -top-8 -translate-x-1/2 hidden group-hover:block z-30 whitespace-nowrap rounded bg-[#140E22] border border-[#3B2D53] px-2 py-1 text-[11px] font-normal text-[#F5F3FF] shadow-xl">
                   {tooltip}
                 </div>
               </div>
             )}
           </div>
-          <div className="text-2xl font-bold tracking-tight text-[#172033]">{value}</div>
+          <div className="text-xl sm:text-2xl font-bold tracking-tight text-[#F5F3FF] truncate">
+            {value}
+          </div>
         </div>
+
         <div
-          className={`p-2.5 rounded-lg border ${
+          className={`p-2 rounded-lg border shrink-0 ${
             highlightCritical
-              ? 'bg-red-50 text-red-600 border-red-100'
-              : 'bg-slate-50 text-blue-700 border-slate-200/60'
+              ? 'bg-rose-950/40 text-[#FB7185] border-rose-800/40'
+              : 'bg-[#2B2042] text-[#A78BFA] border-[#3B2D53]'
           }`}
         >
           {icon}
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-xs pt-3 border-t border-slate-100">
+      <div className="mt-3 flex items-center justify-between text-xs pt-2.5 border-t border-[#3B2D53] gap-1 min-w-0">
         {trend ? (
-          <div className="flex items-center gap-1 font-medium">
+          <div className="flex items-center gap-1 font-medium min-w-0 truncate">
             <span
-              className={`inline-flex items-center text-xs ${
-                trend.isPositive ? 'text-emerald-700' : 'text-rose-600'
+              className={`inline-flex items-center text-[11px] font-semibold shrink-0 ${
+                trend.isPositive ? 'text-[#34D399]' : 'text-[#FB7185]'
               }`}
             >
               {trend.isPositive ? (
-                <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
+                <ArrowUpRight className="w-3 h-3 mr-0.5" />
               ) : (
-                <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
+                <ArrowDownRight className="w-3 h-3 mr-0.5" />
               )}
               {trend.value}
             </span>
-            <span className="text-[#94A3B8]">{trend.label}</span>
+            <span className="text-[11px] text-[#B9AECF] truncate">{trend.label}</span>
           </div>
         ) : (
-          <span className="text-[#94A3B8]">Telemetry synchronized</span>
+          <span className="text-[11px] text-[#B9AECF]/70 truncate">Database sync</span>
         )}
 
         {isDemo && (
-          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded border border-slate-200">
-            Demo Data
+          <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 bg-[#8B5CF6]/15 text-[#A78BFA] rounded border border-[#8B5CF6]/30 shrink-0">
+            Live
           </span>
         )}
       </div>

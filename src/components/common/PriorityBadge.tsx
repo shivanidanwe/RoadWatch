@@ -8,23 +8,23 @@ interface PriorityBadgeProps {
 
 export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, className = '' }) => {
   const styles = {
-    Critical: 'bg-red-50 text-red-700 border-red-200 ring-1 ring-red-600/10',
-    High: 'bg-orange-50 text-orange-700 border-orange-200 ring-1 ring-orange-600/10',
-    Medium: 'bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-600/10',
-    Low: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-600/10',
-  }[priority] || 'bg-slate-50 text-slate-700 border-slate-200';
+    Critical: 'bg-[#FB7185]/15 text-[#FB7185] border-[#FB7185]/40',
+    High: 'bg-[#FBBF24]/15 text-[#FBBF24] border-[#FBBF24]/40',
+    Medium: 'bg-[#60A5FA]/15 text-[#60A5FA] border-[#60A5FA]/40',
+    Low: 'bg-[#34D399]/15 text-[#34D399] border-[#34D399]/40',
+  }[priority] || 'bg-[#2B2042] text-[#B9AECF] border-[#3B2D53]';
 
   const dotColors = {
-    Critical: 'bg-red-600',
-    High: 'bg-orange-500',
-    Medium: 'bg-amber-500',
-    Low: 'bg-emerald-500',
-  }[priority] || 'bg-slate-400';
+    Critical: 'bg-[#FB7185]',
+    High: 'bg-[#FBBF24]',
+    Medium: 'bg-[#60A5FA]',
+    Low: 'bg-[#34D399]',
+  }[priority] || 'bg-[#B9AECF]';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles} ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${styles} ${className}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${dotColors}`} aria-hidden="true" />
-      {priority} Priority
+      {priority}
     </span>
   );
 };

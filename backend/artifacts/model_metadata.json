@@ -1,0 +1,45 @@
+{
+  "model_version": "v2.4-TestRun",
+  "algorithm": "RandomForest-Ensemble",
+  "training_timestamp": "2026-10-29 19:10:43",
+  "dataset_version": "v2.0-DemonstrationBenchmark",
+  "feature_count": 10,
+  "features": [
+    "damage_severity_score",
+    "recent_report_frequency_score",
+    "traffic_intensity_score",
+    "weather_exposure_score",
+    "time_since_last_repair_score",
+    "historical_deterioration_score",
+    "days_since_last_repair",
+    "days_since_last_inspection",
+    "surface_decay_factor",
+    "traffic_weather_interaction"
+  ],
+  "artifact_file": "model_v2.4.joblib",
+  "data_validation": {
+    "total_records": 1500,
+    "missing_field_rates": {
+      "segment_id": 0.0,
+      "road_name": 0.0,
+      "ward": 0.0,
+      "road_type": 0.0,
+      "surface_type": 0.0,
+      "length_km": 0.0,
+      "pci_score": 0.0,
+      "current_condition": 0.0,
+      "traffic_intensity": 0.0,
+      "weather_exposure": 0.0,
+      "last_inspection_date": 0.0,
+      "last_maintenance_date": 0.0,
+      "open_reports_count": 0.0,
+      "latitude": 0.0,
+      "longitude": 0.0
+    },
+    "duplicate_records_found": 0,
+    "invalid_coordinates_count": 0,
+    "outliers_detected": {},
+    "warnings": [],
+    "is_valid": true
+  }
+}

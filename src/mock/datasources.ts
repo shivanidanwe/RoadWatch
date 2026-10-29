@@ -3,80 +3,55 @@ import { DataSource } from '../types';
 export const INITIAL_DATA_SOURCES: DataSource[] = [
   {
     id: 'DS-01',
-    name: 'PostgreSQL 16 + PostGIS Spatial DB',
-    category: 'Relational & Spatial DB',
-    endpoint: 'postgresql://gis_admin@db-internal.roadwatch.local:5432/roadwatch_spatial',
+    name: 'Municipal GIS & Road Inventory',
+    category: 'Spatial DB',
+    endpoint: 'http://localhost:8000/api/v1/roads',
     status: 'Connected',
-    lastCheck: 'Just now (10s ago)',
+    lastCheck: 'Just now',
     lastSync: '2024-10-26 17:30',
-    recordsCount: 48920,
-    syncFrequency: 'Real-time WAL streaming',
+    recordsCount: 6,
+    syncFrequency: 'Real-time sync',
     latencyMs: 14,
-    notes: 'Primary geospatial store storing MultiLineString road geometries, maintenance history tables, and citizen reports.'
+    notes: 'Geospatial road centerline coordinates and pavement attributes.'
   },
   {
     id: 'DS-02',
-    name: 'FastAPI Prediction & Scoring Engine',
+    name: 'FastAPI Prediction Engine',
     category: 'REST Microservice',
-    endpoint: 'http://localhost:8000/api/v1',
+    endpoint: 'http://localhost:8000/api/v1/predictions',
     status: 'Connected',
     lastCheck: '1 minute ago',
     lastSync: '2024-10-26 17:25',
-    recordsCount: 12040,
-    syncFrequency: 'On-demand REST polling',
+    recordsCount: 6,
+    syncFrequency: 'On-demand polling',
     latencyMs: 38,
-    notes: 'Python 3.11 service executing Scikit-learn random forest pipelines and urgency criteria weighting.'
+    notes: 'Scikit-Learn ML inference and configurable urgency scoring.'
   },
   {
     id: 'DS-03',
-    name: 'Meteorological Doppler Weather API',
-    category: 'Weather Telemetry',
-    endpoint: 'https://telemetry.meteo-gov.in/v2/precipitation/zones',
+    name: 'Meteorological Rain Telemetry',
+    category: 'Weather Service',
+    endpoint: 'https://telemetry.meteo-gov.in/v2',
     status: 'Connected',
     lastCheck: '15 minutes ago',
     lastSync: '2024-10-26 17:00',
-    recordsCount: 720,
-    syncFrequency: 'Every 15 minutes',
-    latencyMs: 120,
-    notes: 'Provides rainfall accumulation, soil saturation indexes, and stormwater flood hazard alerts.'
+    recordsCount: 120,
+    syncFrequency: 'Every 15 min',
+    latencyMs: 85,
+    notes: 'Precipitation accumulation and monsoon flood alert feeds.'
   },
   {
     id: 'DS-04',
-    name: 'Municipal Traffic Management Center (ATCS)',
-    category: 'Traffic & Congestion',
-    endpoint: 'https://atcs-stream.transit.gov/sensors/pcu-feed',
+    name: 'Traffic Vehicle Counts Feed',
+    category: 'Traffic Sensors',
+    endpoint: 'https://atcs-stream.transit.gov',
     status: 'Connected',
     lastCheck: '5 minutes ago',
     lastSync: '2024-10-26 17:15',
-    recordsCount: 18450,
-    syncFrequency: 'Every 5 minutes',
-    latencyMs: 82,
-    notes: 'Radar loop detector vehicle counts and commercial heavy-axle freight volume measurements.'
-  },
-  {
-    id: 'DS-05',
-    name: 'OpenStreetMap Carto & Vector Tiles',
-    category: 'GIS Basemaps',
-    endpoint: 'https://demotiles.maplibre.org/style.json',
-    status: 'Connected',
-    lastCheck: '2 minutes ago',
-    lastSync: '2024-10-26 17:28',
-    recordsCount: 95000,
-    syncFrequency: 'Static / CDN Cached',
-    latencyMs: 24,
-    notes: 'Vector tile server serving road networks, ward boundaries, and terrain contours for MapLibre GL.'
-  },
-  {
-    id: 'DS-06',
-    name: 'Mobile Inspection Tablet Fleet (Field App)',
-    category: 'Sensor Network',
-    endpoint: 'wss://field-sync.roadwatch.local/events',
-    status: 'Connected',
-    lastCheck: '3 minutes ago',
-    lastSync: '2024-10-26 17:20',
-    recordsCount: 3410,
-    syncFrequency: 'WebSocket Push',
-    latencyMs: 45,
-    notes: 'Offline-first field inspection sync channel with encrypted photo upload buffer.'
+    recordsCount: 450,
+    syncFrequency: 'Every 5 min',
+    latencyMs: 62,
+    notes: 'Loop detectors measuring commercial axle volumes.'
   }
 ];
+

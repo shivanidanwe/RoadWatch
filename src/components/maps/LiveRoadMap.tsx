@@ -5,22 +5,17 @@ import { PriorityBadge } from '../common/PriorityBadge';
 import { ConditionBadge } from '../common/ConditionBadge';
 import {
   Layers,
-  ZoomIn,
-  ZoomOut,
   Maximize2,
   Minimize2,
   Navigation,
-  Eye,
-  EyeOff,
   AlertTriangle,
   Route,
   CalendarCheck,
-  CheckCircle2,
-  Clock,
   Car,
   CloudRain,
   History,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 
 interface LiveRoadMapProps {
@@ -33,28 +28,25 @@ interface LiveRoadMapProps {
   onReportIssue?: (road: RoadSegment) => void;
 }
 
-const BASEMAP_STYLES = {
-  standard: 'https://demotiles.maplibre.org/style.json',
-  positron: {
-    version: 8,
-    sources: {
-      'osm-tiles': {
-        type: 'raster',
-        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256,
-        attribution: '&copy; OpenStreetMap contributors'
-      }
-    },
-    layers: [
-      {
-        id: 'osm-tiles-layer',
-        type: 'raster',
-        source: 'osm-tiles',
-        minzoom: 0,
-        maxzoom: 19
-      }
-    ]
-  }
+const OSM_STYLE: any = {
+  version: 8,
+  sources: {
+    'osm-tiles': {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors'
+    }
+  },
+  layers: [
+    {
+      id: 'osm-tiles-layer',
+      type: 'raster',
+      source: 'osm-tiles',
+      minzoom: 0,
+      maxzoom: 19
+    }
+  ]
 };
 
 export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
@@ -72,7 +64,6 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showLayersDropdown, setShowLayersDropdown] = useState(false);
-  const [basemap, setBasemap] = useState<'standard' | 'osm'>('osm');
 
   // Layer toggles
   const [layers, setLayers] = useState({
@@ -92,197 +83,266 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
     return true;
   });
 
-  const filteredReports = reports.filter(r => layers.reports);
-  const filteredInspections = inspections.filter(i => layers.inspections);
-
   // Initialize MapLibre
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    try {
-      const map = new maplibregl.Map({
-        container: mapContainerRef.current,
-        style: BASEMAP_STYLES.positron as any,
-        center: [77.6000, 12.9600], // Bangalore metropolitan default
-        zoom: 12.2,
-        attributionControl: false,
-      });
+    const initialCenter: [number, number] = selectedRoad
+      ? [selectedRoad.coordinates[1], selectedRoad.coordinates[0]]
+      : [77.62, 12.96];
 
-      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
-      mapRef.current = map;
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: OSM_STYLE,
+      center: initialCenter,
+      zoom: 12,
+    });
 
-      return () => {
-        map.remove();
-        mapRef.current = null;
-      };
-    } catch (err) {
-      console.warn('MapLibre GL failed to initialize in environment:', err);
-    }
+    mapRef.current = map;
+
+    map.on('load', () => {
+      renderRoadLines(map);
+      renderMarkers(map);
+    });
+
+    return () => {
+      map.remove();
+    };
   }, []);
 
-  // Update Markers & Layers when data or layer toggles change
+  // Update center when selectedRoad changes
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !selectedRoad) return;
 
-    // Clear old markers
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-
-    // Add road centroid markers with condition coloring
-    if (layers.roads) {
-      filteredRoads.forEach(road => {
-        const el = document.createElement('div');
-        const isSelected = selectedRoad?.id === road.id;
-        const color = {
-          Critical: '#DC2626',
-          Poor: '#EA580C',
-          Fair: '#2563EB',
-          Good: '#15803D',
-        }[road.currentCondition];
-
-        el.className = 'cursor-pointer transition-transform duration-150 hover:scale-125';
-        el.innerHTML = `
-          <div style="
-            background-color: ${color};
-            width: ${isSelected ? '22px' : '16px'};
-            height: ${isSelected ? '22px' : '16px'};
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
-            <div style="width: 5px; height: 5px; border-radius: 50%; background: white;"></div>
-          </div>
-        `;
-
-        el.addEventListener('click', () => {
-          onSelectRoad(road);
-        });
-
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([road.coordinates[1], road.coordinates[0]])
-          .addTo(map);
-
-        markersRef.current.push(marker);
-      });
-    }
-
-    // Add Report markers
-    if (layers.reports) {
-      filteredReports.forEach(rep => {
-        const el = document.createElement('div');
-        el.className = 'cursor-pointer hover:scale-125 transition-transform';
-        el.innerHTML = `
-          <div style="
-            background: #B91C1C;
-            color: white;
-            padding: 3px 5px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 700;
-            border: 1px solid white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 2px;
-          ">
-            <span>⚠️</span>
-          </div>
-        `;
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([rep.coordinates[1], rep.coordinates[0]])
-          .setPopup(
-            new maplibregl.Popup({ offset: 10 }).setHTML(`
-              <div style="padding: 6px; font-family: sans-serif; font-size: 12px;">
-                <strong style="color: #172033;">${rep.category}</strong>
-                <div style="color: #64748B; font-size: 11px;">${rep.roadName}</div>
-                <div style="margin-top: 4px; font-size: 11px;">Status: <strong>${rep.status}</strong></div>
-              </div>
-            `)
-          )
-          .addTo(map);
-
-        markersRef.current.push(marker);
-      });
-    }
-
-    // Add Inspection markers
-    if (layers.inspections) {
-      filteredInspections.forEach(insp => {
-        const road = roads.find(r => r.id === insp.segmentId);
-        if (!road) return;
-        const el = document.createElement('div');
-        el.className = 'cursor-pointer hover:scale-125 transition-transform';
-        el.innerHTML = `
-          <div style="
-            background: #2563EB;
-            color: white;
-            padding: 2px 4px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: bold;
-            border: 1px solid white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-          ">
-            🔍 ${insp.id.replace('INSP-2024-', '#')}
-          </div>
-        `;
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([road.coordinates[1] + 0.002, road.coordinates[0] - 0.002])
-          .setPopup(
-            new maplibregl.Popup({ offset: 10 }).setHTML(`
-              <div style="padding: 6px; font-family: sans-serif; font-size: 12px;">
-                <strong style="color: #172033;">${insp.type}</strong>
-                <div style="color: #64748B; font-size: 11px;">${insp.roadName}</div>
-                <div style="margin-top: 4px; font-size: 11px;">Inspector: ${insp.assignedInspector}</div>
-              </div>
-            `)
-          )
-          .addTo(map);
-
-        markersRef.current.push(marker);
-      });
-    }
-  }, [filteredRoads, filteredReports, filteredInspections, layers, selectedRoad]);
-
-  // Center on selected road
-  useEffect(() => {
-    if (!selectedRoad || !mapRef.current) return;
-    mapRef.current.flyTo({
+    map.flyTo({
       center: [selectedRoad.coordinates[1], selectedRoad.coordinates[0]],
-      zoom: 14.5,
+      zoom: 13.5,
       essential: true,
-      duration: 1200,
+      speed: 1.2,
     });
   }, [selectedRoad]);
 
+  // Update lines and markers when dependencies change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    renderRoadLines(map);
+    renderMarkers(map);
+  }, [filteredRoads, reports, layers]);
+
+  const renderRoadLines = (map: maplibregl.Map) => {
+    if (map.getSource('roads-lines')) {
+      if (map.getLayer('roads-lines-layer')) {
+        map.removeLayer('roads-lines-layer');
+      }
+      map.removeSource('roads-lines');
+    }
+
+    if (!layers.roads || filteredRoads.length === 0) return;
+
+    const features = filteredRoads.map(road => {
+      const path = (road.pathCoordinates && road.pathCoordinates.length > 0)
+        ? road.pathCoordinates
+        : [road.coordinates, [road.coordinates[0] + 0.005, road.coordinates[1] + 0.005]];
+      const coords = path.map(c => [c[1], c[0]]);
+      const conditionColor =
+        road.currentCondition === 'Critical'
+          ? '#FB7185'
+          : road.currentCondition === 'Poor'
+          ? '#FBBF24'
+          : road.currentCondition === 'Fair'
+          ? '#60A5FA'
+          : '#34D399';
+
+      return {
+        type: 'Feature' as const,
+        properties: {
+          id: road.id,
+          name: road.name,
+          condition: road.currentCondition,
+          color: conditionColor,
+        },
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: coords,
+        },
+      };
+    });
+
+    map.addSource('roads-lines', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features,
+      },
+    });
+
+    map.addLayer({
+      id: 'roads-lines-layer',
+      type: 'line',
+      source: 'roads-lines',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': ['get', 'color'],
+        'line-width': 5,
+        'line-opacity': 0.95,
+      },
+    });
+
+    map.on('click', 'roads-lines-layer', (e: any) => {
+      if (!e.features || e.features.length === 0) return;
+      const clickedId = e.features[0].properties.id;
+      const match = roads.find(r => r.id === clickedId);
+      if (match) onSelectRoad(match);
+    });
+
+    map.on('mouseenter', 'roads-lines-layer', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'roads-lines-layer', () => {
+      map.getCanvas().style.cursor = '';
+    });
+  };
+
+  const renderMarkers = (map: maplibregl.Map) => {
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    // Road Centroid Markers
+    if (layers.roads) {
+      filteredRoads.forEach(road => {
+        const el = document.createElement('div');
+        const conditionColor =
+          road.currentCondition === 'Critical'
+            ? '#FB7185'
+            : road.currentCondition === 'Poor'
+            ? '#FBBF24'
+            : road.currentCondition === 'Fair'
+            ? '#60A5FA'
+            : '#34D399';
+
+        el.className = 'road-marker cursor-pointer transition-transform hover:scale-125';
+        el.innerHTML = `
+          <div style="
+            background-color: ${conditionColor};
+            width: 24px;
+            height: 24px;
+            border-radius: 9999px;
+            border: 2px solid #140E22;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #100B1D;
+            font-size: 11px;
+            font-weight: 800;
+          ">
+            !
+          </div>
+        `;
+
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onSelectRoad(road);
+        });
+
+        const popup = new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(`
+          <div style="font-family: inherit; font-size: 12px; color: #F5F3FF; background-color: #211735; padding: 8px; border-radius: 8px; border: 1px solid #3B2D53;">
+            <div style="font-weight: 700; color: #A78BFA;">${road.name}</div>
+            <div style="color: #B9AECF; font-size: 11px;">${road.ward} | ${road.id}</div>
+            <div style="margin-top: 4px; display: flex; gap: 8px;">
+              <span>Condition: <b>${road.currentCondition}</b></span>
+              <span>Risk: <b>${road.riskScore}/100</b></span>
+            </div>
+          </div>
+        `);
+
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([road.coordinates[1], road.coordinates[0]])
+          .setPopup(popup)
+          .addTo(map);
+
+        markersRef.current.push(marker);
+      });
+    }
+
+    // Citizen & Patrol Issue Report Markers
+    if (layers.reports) {
+      reports.forEach(rep => {
+        const el = document.createElement('div');
+        el.className = 'report-marker cursor-pointer transition-transform hover:scale-125';
+        el.innerHTML = `
+          <div style="
+            background-color: #8B5CF6;
+            color: #FFFFFF;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid #140E22;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+          ">
+            ⚠️
+          </div>
+        `;
+
+        const popup = new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(`
+          <div style="font-family: inherit; font-size: 12px; color: #F5F3FF; background-color: #211735; padding: 8px; border-radius: 8px; border: 1px solid #3B2D53;">
+            <div style="font-weight: 700; color: #C4B5FD;">Report: ${rep.category}</div>
+            <div style="color: #B9AECF; font-size: 11px;">${rep.roadName}</div>
+            <div style="margin-top: 4px;">Severity: <b>${rep.severity}</b> | Status: <b>${rep.status}</b></div>
+          </div>
+        `);
+
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([rep.coordinates[1], rep.coordinates[0]])
+          .setPopup(popup)
+          .addTo(map);
+
+        markersRef.current.push(marker);
+      });
+    }
+  };
+
   const fitToDataExtent = () => {
-    if (!mapRef.current || roads.length === 0) return;
+    const map = mapRef.current;
+    if (!map || roads.length === 0) return;
+
     const bounds = new maplibregl.LngLatBounds();
-    roads.forEach(r => bounds.extend([r.coordinates[1], r.coordinates[0]]));
-    mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+    roads.forEach(r => {
+      bounds.extend([r.coordinates[1], r.coordinates[0]]);
+      if (r.pathCoordinates) {
+        r.pathCoordinates.forEach(c => bounds.extend([c[1], c[0]]));
+      }
+    });
+    map.fitBounds(bounds, { padding: 40, maxZoom: 14 });
   };
 
   return (
     <div
-      className={`relative bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm flex flex-col md:flex-row ${
-        isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'h-[680px]'
+      className={`relative bg-[#211735] border border-[#3B2D53] rounded-xl overflow-hidden shadow-xs flex flex-col md:flex-row min-w-0 ${
+        isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'h-[640px]'
       }`}
     >
-      {/* Map Section (65 - 75% width) */}
-      <div className="relative flex-1 h-full min-h-[350px]">
-        {/* Top Control Overlay */}
-        <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-          {/* Quick Filters */}
-          <div className="flex items-center gap-1.5 pointer-events-auto bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[#E2E8F0] shadow-sm text-xs">
-            <span className="font-semibold text-[#172033] hidden sm:inline">Priority:</span>
+      {/* Map Interactive Area */}
+      <div className="relative flex-1 h-full min-w-0 overflow-hidden">
+        {/* Top Floating Controls Bar */}
+        <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none gap-2">
+          {/* Left Quick Filters */}
+          <div className="flex items-center gap-2 bg-[#211735]/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[#3B2D53] shadow-xs text-xs pointer-events-auto text-[#F5F3FF]">
+            <span className="font-semibold text-[#B9AECF] hidden sm:inline">Priority:</span>
             <select
               value={filterPriority}
               onChange={e => setFilterPriority(e.target.value)}
-              className="bg-transparent font-medium text-[#172033] focus:outline-none cursor-pointer"
+              className="bg-[#140E22] border border-[#3B2D53] rounded px-1.5 py-0.5 font-medium text-[#F5F3FF] focus:outline-none cursor-pointer"
             >
               <option value="ALL">All Priorities</option>
               <option value="Critical">Critical</option>
@@ -291,13 +351,13 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
               <option value="Low">Low</option>
             </select>
 
-            <span className="text-slate-300">|</span>
+            <span className="text-[#3B2D53]">|</span>
 
-            <span className="font-semibold text-[#172033] hidden sm:inline">Condition:</span>
+            <span className="font-semibold text-[#B9AECF] hidden sm:inline">Condition:</span>
             <select
               value={filterCondition}
               onChange={e => setFilterCondition(e.target.value)}
-              className="bg-transparent font-medium text-[#172033] focus:outline-none cursor-pointer"
+              className="bg-[#140E22] border border-[#3B2D53] rounded px-1.5 py-0.5 font-medium text-[#F5F3FF] focus:outline-none cursor-pointer"
             >
               <option value="ALL">All Conditions</option>
               <option value="Critical">Critical</option>
@@ -313,40 +373,31 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
             <div className="relative">
               <button
                 onClick={() => setShowLayersDropdown(!showLayersDropdown)}
-                className="p-2 bg-white/95 backdrop-blur-md rounded-lg border border-[#E2E8F0] text-[#172033] hover:bg-slate-50 shadow-sm transition"
+                className="p-2 bg-[#211735]/95 backdrop-blur-md rounded-lg border border-[#3B2D53] text-[#F5F3FF] hover:bg-[#2B2042] shadow-xs transition"
                 title="Toggle Layers"
               >
-                <Layers className="w-4 h-4" />
+                <Layers className="w-4 h-4 text-[#A78BFA]" />
               </button>
 
               {showLayersDropdown && (
-                <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-[#E2E8F0] rounded-xl shadow-xl p-3 space-y-2 text-xs z-20">
-                  <span className="font-bold text-[#172033] block mb-1">Layer Visibility</span>
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#211735] border border-[#3B2D53] rounded-xl shadow-xl p-3 space-y-2 text-xs z-20 text-[#F5F3FF]">
+                  <span className="font-bold text-[#F5F3FF] block mb-1">Layers</span>
                   <label className="flex items-center justify-between cursor-pointer">
-                    <span>Road Segments</span>
+                    <span className="text-[#B9AECF]">Roads</span>
                     <input
                       type="checkbox"
                       checked={layers.roads}
                       onChange={e => setLayers({ ...layers, roads: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-0"
+                      className="rounded text-[#8B5CF6] focus:ring-0"
                     />
                   </label>
                   <label className="flex items-center justify-between cursor-pointer">
-                    <span>Issue Reports</span>
+                    <span className="text-[#B9AECF]">Reports</span>
                     <input
                       type="checkbox"
                       checked={layers.reports}
                       onChange={e => setLayers({ ...layers, reports: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-0"
-                    />
-                  </label>
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <span>Field Inspections</span>
-                    <input
-                      type="checkbox"
-                      checked={layers.inspections}
-                      onChange={e => setLayers({ ...layers, inspections: e.target.checked })}
-                      className="rounded text-blue-600 focus:ring-0"
+                      className="rounded text-[#8B5CF6] focus:ring-0"
                     />
                   </label>
                 </div>
@@ -356,73 +407,72 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
             {/* Fit extent */}
             <button
               onClick={fitToDataExtent}
-              className="p-2 bg-white/95 backdrop-blur-md rounded-lg border border-[#E2E8F0] text-[#172033] hover:bg-slate-50 shadow-sm transition"
+              className="p-2 bg-[#211735]/95 backdrop-blur-md rounded-lg border border-[#3B2D53] text-[#F5F3FF] hover:bg-[#2B2042] shadow-xs transition"
               title="Fit to network extent"
             >
-              <Navigation className="w-4 h-4" />
+              <Navigation className="w-4 h-4 text-[#A78BFA]" />
             </button>
 
             {/* Fullscreen */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-2 bg-white/95 backdrop-blur-md rounded-lg border border-[#E2E8F0] text-[#172033] hover:bg-slate-50 shadow-sm transition"
+              className="p-2 bg-[#211735]/95 backdrop-blur-md rounded-lg border border-[#3B2D53] text-[#F5F3FF] hover:bg-[#2B2042] shadow-xs transition"
               title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}
             >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isFullscreen ? <Minimize2 className="w-4 h-4 text-[#A78BFA]" /> : <Maximize2 className="w-4 h-4 text-[#A78BFA]" />}
             </button>
           </div>
         </div>
 
-        {/* The MapLibre Canvas Container */}
-        <div ref={mapContainerRef} className="w-full h-full bg-[#E5E9F0]" />
+        {/* Map Canvas */}
+        <div ref={mapContainerRef} className="w-full h-full bg-[#100B1D]" />
 
         {/* Map Legend Overlay */}
-        <div className="absolute bottom-3 left-3 pointer-events-auto bg-white/95 backdrop-blur-md px-3 py-2 rounded-lg border border-[#E2E8F0] shadow-sm text-[11px] space-y-1">
-          <div className="font-bold text-[#172033] mb-1">Road Condition Legend</div>
+        <div className="absolute bottom-3 left-3 pointer-events-auto bg-[#211735]/95 backdrop-blur-md px-3 py-2 rounded-lg border border-[#3B2D53] shadow-xs text-[11px] space-y-1 text-[#F5F3FF]">
+          <div className="font-bold text-[#F5F3FF] mb-1">Condition Legend</div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-600 ring-1 ring-red-400" />
-            <span>Critical (PCI &lt; 40)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#FB7185]" />
+            <span className="text-[#B9AECF]">Critical (PCI &lt; 40)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-            <span>Poor (PCI 40–54)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#FBBF24]" />
+            <span className="text-[#B9AECF]">Poor (PCI 40–54)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-            <span>Fair (PCI 55–69)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#60A5FA]" />
+            <span className="text-[#B9AECF]">Fair (PCI 55–69)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-            <span>Good (PCI 70–100)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#34D399]" />
+            <span className="text-[#B9AECF]">Good (PCI 70–100)</span>
           </div>
-          <div className="pt-1 border-t border-slate-100 flex items-center gap-2 text-[#64748B]">
-            <span>⚠️ Issue Report</span>
-            <span>🔍 Inspection</span>
+          <div className="pt-1 border-t border-[#3B2D53] flex items-center gap-2 text-[#B9AECF]">
+            <span>⚠️ Issue Ticket</span>
           </div>
         </div>
       </div>
 
-      {/* Selected Road Detail Panel (25 - 35% width) */}
-      <div className="w-full md:w-80 lg:w-96 border-t md:border-t-0 md:border-l border-[#E2E8F0] bg-white flex flex-col h-full overflow-y-auto">
+      {/* Selected Road Detail Panel (Right Side) */}
+      <div className="w-full md:w-80 lg:w-96 border-t md:border-t-0 md:border-l border-[#3B2D53] bg-[#211735] flex flex-col h-full overflow-y-auto min-w-0 text-[#F5F3FF]">
         {selectedRoad ? (
-          <div className="p-5 flex-1 flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
+          <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
+            <div className="space-y-4 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#8B5CF6]/20 text-[#C4B5FD] font-bold border border-[#8B5CF6]/30">
                       {selectedRoad.id}
                     </span>
-                    <span className="text-xs text-[#64748B]">{selectedRoad.roadType}</span>
+                    <span className="text-xs text-[#B9AECF]">{selectedRoad.roadType}</span>
                   </div>
-                  <h3 className="text-sm font-bold text-[#172033] mt-1 leading-snug">
+                  <h3 className="text-sm font-bold text-[#F5F3FF] mt-1 leading-snug truncate">
                     {selectedRoad.name}
                   </h3>
-                  <p className="text-xs text-[#64748B]">{selectedRoad.ward}</p>
+                  <p className="text-xs text-[#B9AECF]">{selectedRoad.ward}</p>
                 </div>
                 <button
                   onClick={() => onSelectRoad(null)}
-                  className="p-1 text-[#94A3B8] hover:text-[#172033] rounded hover:bg-slate-100"
+                  className="p-1 text-[#B9AECF] hover:text-[#F5F3FF] rounded hover:bg-[#2B2042]"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -435,89 +485,90 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
               </div>
 
               {/* Scores Grid */}
-              <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-slate-50 border border-[#E2E8F0] text-xs">
+              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-[#140E22] border border-[#3B2D53] text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[#64748B]">PCI Score</span>
-                  <div className="text-base font-bold text-[#172033]">{selectedRoad.pciScore} / 100</div>
+                  <span className="text-[10px] uppercase font-bold text-[#B9AECF]">PCI Score</span>
+                  <div className="text-base font-bold text-[#F5F3FF]">{selectedRoad.pciScore} / 100</div>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[#64748B]">Predicted Risk</span>
-                  <div className={`text-base font-bold ${selectedRoad.riskScore >= 75 ? 'text-red-600' : 'text-blue-700'}`}>
+                  <span className="text-[10px] uppercase font-bold text-[#B9AECF]">Predicted Risk</span>
+                  <div className={`text-base font-bold flex items-center gap-1 ${selectedRoad.riskScore >= 75 ? 'text-[#FB7185]' : 'text-[#A78BFA]'}`}>
+                    <Zap className="w-3.5 h-3.5" />
                     {selectedRoad.riskScore} / 100
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[#64748B]">Length</span>
-                  <div className="text-xs font-semibold text-[#172033]">{selectedRoad.lengthKm} km</div>
+                  <span className="text-[10px] uppercase font-bold text-[#B9AECF]">Length</span>
+                  <div className="text-xs font-semibold text-[#F5F3FF]">{selectedRoad.lengthKm} km</div>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[#64748B]">Surface Type</span>
-                  <div className="text-xs font-semibold text-[#172033]">{selectedRoad.surfaceType}</div>
+                  <span className="text-[10px] uppercase font-bold text-[#B9AECF]">Surface</span>
+                  <div className="text-xs font-semibold text-[#F5F3FF]">{selectedRoad.surfaceType}</div>
                 </div>
               </div>
 
               {/* Stress Factors */}
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between text-[#64748B]">
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between text-[#B9AECF]">
                   <span className="flex items-center gap-1.5">
-                    <Car className="w-3.5 h-3.5" /> Traffic Intensity:
+                    <Car className="w-3.5 h-3.5 text-[#A78BFA]" /> Traffic Load:
                   </span>
-                  <strong className="text-[#172033]">{selectedRoad.trafficIntensity}</strong>
+                  <strong className="text-[#F5F3FF]">{selectedRoad.trafficIntensity}</strong>
                 </div>
-                <div className="flex items-center justify-between text-[#64748B]">
+                <div className="flex items-center justify-between text-[#B9AECF]">
                   <span className="flex items-center gap-1.5">
-                    <CloudRain className="w-3.5 h-3.5" /> Weather Exposure:
+                    <CloudRain className="w-3.5 h-3.5 text-[#60A5FA]" /> Weather Zone:
                   </span>
-                  <strong className="text-[#172033]">{selectedRoad.weatherExposure}</strong>
+                  <strong className="text-[#F5F3FF]">{selectedRoad.weatherExposure}</strong>
                 </div>
-                <div className="flex items-center justify-between text-[#64748B]">
+                <div className="flex items-center justify-between text-[#B9AECF]">
                   <span className="flex items-center gap-1.5">
-                    <History className="w-3.5 h-3.5" /> Last Inspection:
+                    <History className="w-3.5 h-3.5 text-[#B9AECF]" /> Last Inspection:
                   </span>
-                  <strong className="text-[#172033]">{selectedRoad.lastInspectionDate}</strong>
+                  <strong className="text-[#F5F3FF]">{selectedRoad.lastInspectionDate}</strong>
                 </div>
-                <div className="flex items-center justify-between text-[#64748B]">
+                <div className="flex items-center justify-between text-[#B9AECF]">
                   <span className="flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Open Reports:
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#FBBF24]" /> Open Reports:
                   </span>
-                  <strong className="text-amber-700 font-semibold">{selectedRoad.openReportsCount} issues</strong>
+                  <strong className="text-[#FBBF24] font-semibold">{selectedRoad.openReportsCount} issues</strong>
                 </div>
               </div>
 
               {/* Recommendation Box */}
-              <div className="p-3 rounded-lg bg-blue-50/70 border border-blue-200/60 text-xs space-y-1">
-                <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
+              <div className="p-3 rounded-lg bg-[#140E22] border border-[#8B5CF6]/30 text-xs space-y-1">
+                <span className="text-[10px] font-bold text-[#A78BFA] uppercase tracking-wider block">
                   Recommended Action
                 </span>
-                <p className="font-semibold text-blue-950">{selectedRoad.recommendedAction}</p>
-                <p className="text-[11px] text-blue-800 leading-snug">{selectedRoad.recommendationReason}</p>
+                <p className="font-semibold text-[#F5F3FF]">{selectedRoad.recommendedAction}</p>
+                <p className="text-[11px] text-[#B9AECF] leading-snug">{selectedRoad.recommendationReason}</p>
               </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="pt-4 border-t border-[#E2E8F0] space-y-2">
+            <div className="pt-3 border-t border-[#3B2D53] space-y-2">
               <button
                 onClick={() => onScheduleInspection?.(selectedRoad)}
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition"
+                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg bg-[#8B5CF6] text-white hover:bg-[#7C3AED] shadow-xs transition"
               >
                 <CalendarCheck className="w-3.5 h-3.5" />
                 <span>Schedule Inspection</span>
               </button>
               <button
                 onClick={() => onReportIssue?.(selectedRoad)}
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg bg-white border border-[#E2E8F0] text-[#172033] hover:bg-slate-50 transition"
+                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold rounded-lg bg-[#2B2042] border border-[#3B2D53] text-[#F5F3FF] hover:bg-[#3B2D53] transition shadow-xs"
               >
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                <AlertTriangle className="w-3.5 h-3.5 text-[#FBBF24]" />
                 <span>Report Road Issue</span>
               </button>
             </div>
           </div>
         ) : (
-          <div className="p-6 text-center text-xs text-[#64748B] flex-1 flex flex-col items-center justify-center">
-            <Route className="w-8 h-8 text-slate-300 mb-2" />
-            <h4 className="font-semibold text-[#172033]">No Road Segment Selected</h4>
-            <p className="text-[#94A3B8] mt-1 max-w-[200px]">
-              Click any road centroid marker on the map to inspect engineering parameters, predicted risks, and action items.
+          <div className="p-6 text-center text-xs text-[#B9AECF] flex-1 flex flex-col items-center justify-center">
+            <Route className="w-8 h-8 text-[#3B2D53] mb-2" />
+            <h4 className="font-semibold text-[#F5F3FF]">No Road Selected</h4>
+            <p className="text-[#B9AECF] mt-1 max-w-[200px]">
+              Click any road corridor on the map to inspect condition and predicted risk details.
             </p>
           </div>
         )}

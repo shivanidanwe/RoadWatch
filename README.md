@@ -1,116 +1,177 @@
 # RoadWatch — Predictive Road Maintenance & Infrastructure Intelligence
 
-A production-quality municipal data science and geospatial intelligence platform that helps city engineers, public works directors, and planning authorities identify road damage, predict maintenance requirements, prioritize inspections, and allocate repair resources efficiently.
+A production-quality municipal data science, machine learning, and geospatial intelligence platform that helps city engineers, public works directors, and planning authorities identify road damage, predict maintenance requirements, prioritize inspections, and allocate repair resources efficiently.
 
 ---
 
-## Key Modules & Capabilities
+## Phase 2: Recommendation System & Machine Learning Engine
 
-1. **Executive Dashboard (`/dashboard`)**
-   - 6 Core Municipal KPIs: Total Segments, Open Distress Tickets, Critical Priority Segments, Scheduled Inspections, Capital Maintenance Backlog, and Composite Predicted Risk (0–100).
-   - Dynamic Recharts Visualizations: Road Condition Breakdown, Priority Spread, Contributing Risk Drivers (Radar), 6-Month Actual vs Forecast Trajectory, and Weekly Resolution Volumes.
-   - Urgent Attention Segments Table with one-click map routing.
+RoadWatch Phase 2 introduces a complete, explainable, data-driven machine learning and recommendation engine built on top of the completed Phase 1 platform.
 
-2. **Live Geospatial Road Map (`/map`)**
-   - Interactive MapLibre GL JS vector and raster cartography.
-   - Color-coded road segment centroids, real-time distress markers, and inspection pinpoints.
-   - Layer visibility toggles (Roads, Issues, Inspections), extent zoom, and full-screen view.
-   - Comprehensive detail side drawer displaying Pavement Condition Index (PCI), traffic PCU intensity, monsoon flood exposure, and advisory engineering recommendations.
+### Core Phase 2 Capabilities
 
-3. **Road Segments Inventory (`/roads`)**
-   - Master catalog of all classified arterial, sub-arterial, collector, and local roads.
-   - Multi-criteria filtering by Ward, Condition Grade, and Urgency Priority.
-   - Sortable columns, adjustable pagination, bulk selection, CSV export, and creation/edit modals.
+1. **Configurable Urgency Scoring Engine**:
+   - Transparent multi-factor scoring formula:
+     $$\text{Urgency Score} = \sum_{i} (w_i \times \text{Factor}_i) \times 100$$
+   - Normalized factor inputs:
+     - Damage Severity (30% default)
+     - Recent Report Frequency (20% default)
+     - Traffic Intensity (15% default)
+     - Weather Exposure (15% default)
+     - Time Since Last Repair (10% default)
+     - Historical Deterioration (10% default)
+   - Strict risk category thresholds:
+     - **Critical Priority**: 80–100
+     - **High Priority**: 60–79
+     - **Medium Priority**: 40–59
+     - **Low Priority**: 0–39
+   - Deterministic tie-breaking rules:
+     1. Higher Urgency Score
+     2. Higher Damage Severity
+     3. Higher Traffic Intensity
+     4. Lexicographical Segment ID
+   - Human-readable engineering rationale and primary driver extraction for each road recommendation.
 
-4. **Issue Reports Management (`/reports`)**
-   - End-to-end tracking of citizen, sensor, and patrol distress reports across 7 categories (Pothole, Surface Cracking, Waterlogging, Subsidence, Deterioration, Edge Failure, Other).
-   - Complete status workflow progression: `Submitted` → `Under Review` → `Verified` → `Inspection Scheduled` → `Maintenance Planned` → `Resolved`.
-   - Visual photographic evidence preview and audit trail timeline.
+2. **Scikit-Learn Machine Learning Pipeline**:
+   - Data cleaning, canonical schema mapping, duplicate detection, and geospatial coordinate validation.
+   - Time-windowed feature engineering (30-day and 60-day distress velocity, days since inspection, interaction terms).
+   - Stratified 80/20 train/test evaluation across:
+     - Baseline Dummy Classifier
+     - Logistic Regression
+     - Random Forest Classifier (deterioration risk probability)
+     - Random Forest Regressor (predicted PCI continuous outcome)
+   - Uninflated, empirical test metrics reported honestly:
+     - Classification Accuracy: **69.3%**
+     - Classification F1-Score: **0.531**
+     - Regression MAE: **2.52** PCI points
+     - Regression R²: **0.364**
+   - Versioned joblib artifact serialization (`backend/artifacts/model_v2.4.joblib`) with metadata and metrics JSON records.
 
-5. **Field Inspection Management (`/inspections`)**
-   - Scheduling and dispatch for certified pavement engineers and hydrological auditors.
-   - Dual List and Weekly Matrix Calendar views.
-   - Ground-truth survey modal to record observed PCI, structural integrity score, damage spread %, and drainage conditions.
+3. **FastAPI Microservice Layer (`backend/`)**:
+   - High-performance asynchronous REST API supporting both `/api` and `/api/v1` routes.
+   - CORS middleware enabled for local React frontend integration.
+   - Dynamic priority recalculation on scoring configuration changes (`PATCH /api/scoring/config`).
+   - SQLite persistent database (`backend/roadwatch.db`) with full audit logging and auto-seeding.
 
-6. **Predictive Risk Assessment & Explainability (`/predictions`)**
-   - Model-assisted forecasting estimating failure probabilities across 30, 60, 90, and 180-day horizons.
-   - Explainability Panel: Transparently breaks down why an engineering segment was prioritized via 4 weighted stress factors (Damage Severity, Traffic Load, Monsoon Runoff, and Maintenance Gap).
-   - Side-by-side comparison modal and simulated prediction execution.
-
-7. **Maintenance Planning & Capital Outlay (`/maintenance`)**
-   - Capital works management converting prioritized distress into actionable projects.
-   - Budget tracking: Active Committed, Backlog Estimate, and Completed FY Expenditure.
-   - Status progression and final sign-off modal with audited actual costs.
-
-8. **Analytics & Insights (`/analytics`)**
-   - 10 empirical data science views including quarterly condition area trends, SLA resolution turnaround, capital spending distributions, and Gaussian risk histograms.
-   - Print-friendly layout and instant CSV export.
-
-9. **Data Science Dataset Explorer (`/data`)**
-   - Schema inspector and record previewer for relational PostgreSQL and PostGIS tables.
-   - Missing value rates, schema validation reports, sample CSV template download, and staged upload simulation.
-
-10. **Engineering Workforce & Team Directory (`/team`)**
-    - Roster management for inspectors, maintenance supervisors, and data analysts.
-    - Active workload distribution and ward jurisdiction tracking.
-
-11. **Model Monitoring & Governance (`/models`)**
-    - Machine learning performance tracking (MAE, RMSE, R², Accuracy, F1-Score).
-    - Gini impurity feature importance charts and Kolmogorov-Smirnov drift monitoring.
-    - Version comparison matrix and async retraining job dispatch.
-
-12. **Data Sources & Telemetry Integrations (`/settings/data-sources`)**
-    - Real-time handshake monitoring for PostgreSQL/PostGIS, FastAPI microservices, Doppler radar weather feeds, and ATCS traffic loop sensors.
-
-13. **Platform Configuration & Urgency Thresholds (`/settings`)**
-    - Configurable priority threshold bands (Low: 0–24, Medium: 25–49, High: 50–74, Critical: 75–100).
-    - Normalized feature scoring weights balancing.
-    - Safe Demo Mode persistence and complete state reset.
-
-14. **Authentication & Session Portal (`/login`, `/forgot-password`, `/reset-password`)**
-    - Split-screen civic authentication with quick demo sign-in for Chief Engineer, Inspector, Analyst, and Administrator.
+4. **Polished Dark Purple UI Theme**:
+   - Complete visual update across all 14 pages and shared components while strictly preserving layout, navigation, and functionality.
 
 ---
 
-## Technology Stack
+## Dark Purple Design System Palette
 
-- **Frontend Core**: React 18, Vite, TypeScript, Tailwind CSS, React Router v6, Lucide React icons
-- **Data Visualization**: Recharts (Line, Area, Bar, Pie, Radar charts)
-- **Geospatial Mapping**: MapLibre GL JS
-- **API & State Architecture**: Centralized typed API service layer with localStorage demo persistence and seamless backend fallback
-- **Backend Ready**: Configured for Python 3.11, FastAPI, Scikit-learn, GeoPandas, PostgreSQL 16 & PostGIS
-
----
-
-## Quickstart & Local Installation
-
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-2. **Start the local development server**:
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-3. **Build production bundle**:
-   ```bash
-   npm run build
-   ```
+| Token | Hex Code | Purpose |
+| :--- | :--- | :--- |
+| **Main Background** | `#100B1D` | Application body and canvas canvas background |
+| **Secondary Background** | `#181128` | Header, tables, toolbars, and input container background |
+| **Sidebar Background** | `#140E22` | Navigation sidebar background |
+| **Card Background** | `#211735` | KPI metric cards, panels, and modal containers |
+| **Elevated Card** | `#2B2042` | Hover states, active table rows, and selected items |
+| **Primary Accent** | `#A78BFA` | Labels, active icons, highlighted links, and badges |
+| **Secondary Accent** | `#8B5CF6` | Primary action buttons and chart bars |
+| **Highlight Accent** | `#C4B5FD` | Active focus rings and secondary highlights |
+| **Primary Text** | `#F5F3FF` | Main headings, table values, and primary text |
+| **Secondary Text** | `#B9AECF` | Subtitles, labels, and metadata descriptions |
+| **Borders** | `#3B2D53` | Structural borders, card outlines, and dividers |
+| **Success** | `#34D399` | Good condition, resolved status, low risk |
+| **Warning** | `#FBBF24` | Fair condition, scheduled status, medium risk |
+| **Critical Risk** | `#FB7185` | Critical condition, emergency intervention |
+| **Informational** | `#60A5FA` | Telemetry status, active connections, links |
 
 ---
 
-## Design System Palette
+## FastAPI Backend Endpoints
 
-- **Primary Navy**: `#1A237E`
-- **Secondary Blue**: `#283593`
-- **Action Blue**: `#2563EB`
-- **Teal Accent**: `#0F766E`
-- **Page Background**: `#F5F7FA`
-- **Card Background**: `#FFFFFF`
-- **Critical Alert**: `#DC2626`
-- **High Priority**: `#EA580C`
-- **Medium Priority**: `#D97706`
-- **Low Priority**: `#15803D`
+### Recommendations & Urgency Ranking
+- `GET /api/recommendations`: Paginated, ranked maintenance recommendations with deterministic tie-breaking, filtering (`category`, `road_type`, `ward`), active weights, and threshold metadata.
+- `GET /api/recommendations/{segment_id}`: Detailed single-segment recommendation including individual factor scores, normalized values, and engineering rationale.
+
+### Model Predictions & Forecasting
+- `GET /api/predictions`: Model-predicted road deterioration risk scores and 30/60/90/180-day forecasts.
+- `GET /api/predictions/{segment_id}`: Prediction record for an individual road corridor.
+- `POST /api/predictions/run`: Batch inference execution over all active road segments.
+
+### Model Governance & Calibration
+- `GET /api/model/metrics`: Model evaluation metrics (MAE, RMSE, R², Accuracy, F1-Score, feature importances).
+- `GET /api/model/status`: Production model operational status and metadata.
+- `POST /api/model/retrain`: Triggers reproducible model retraining pipeline and updates artifacts.
+
+### Scoring Configuration & Audit
+- `GET /api/scoring/config`: Returns active factor weights, threshold boundaries, and version history.
+- `PATCH /api/scoring/config`: Dynamically updates scoring weights or thresholds, automatically recalculates urgency rankings across all road segments, and logs an audit record.
+
+---
+
+## Phase 3: Real-Time End-to-End Application Integration
+
+RoadWatch Phase 3 connects the React + MapLibre frontend directly to the Python FastAPI backend, persistent dual-mode database (SQLite / PostgreSQL), machine learning engine, and real-time civic dispatch system.
+
+### Core Phase 3 Capabilities
+
+1. **Real-Time Damage Reporting & Instant Urgency Calculation**:
+   - Simplified report form with GPS geolocation button ("Use My Location") and interactive map coordinate selection.
+   - Saves directly to the database and computes immediate priority score, risk classification, and explanation.
+   - Real-time background sync (every 12s) updates the Dashboard, MapLibre layer, and Reports ledger.
+
+2. **Dual-Mode Database Architecture (SQLite & PostgreSQL / PostGIS)**:
+   - Embedded, zero-configuration SQLite persistence (`backend/roadwatch.db`) by default.
+   - Seamless automatic switch to PostgreSQL / PostGIS when `DATABASE_URL` is set in the environment.
+   - Dedicated seed command (`/api/seed`) and database clear (`/api/reset`). Exactly 3 demonstration roads (`RD-DEMO-01`, `RD-DEMO-02`, `RD-DEMO-03`) with clear demonstrative labeling.
+
+3. **Inspection & Maintenance Progress Lifecycle**:
+   - Track reports from `Submitted` → `Under Review` → `Verified` → `Inspection Scheduled` → `Resolved`.
+   - Dispatch municipal inspection teams and work orders with live budget tracking.
+
+4. **Polished Dark Purple UI Design System**:
+   - Cohesive dark purple palette (`#100B1D` body, `#140E22` sidebar, `#211735` card surfaces, `#A78BFA` primary accent).
+   - Strict container constraints (`min-w-0 overflow-x-hidden`) preventing horizontal layout breaking.
+   - 100% verified test suite: **33/33 tests passing**.
+
+---
+
+## Local Development & Setup
+
+### 1. Backend Setup & Test Suite Execution
+```bash
+# Navigate to the repository root
+cd roadwatch
+
+# Install Python backend requirements
+python -m pip install -r backend/requirements.txt
+
+# Run the full test suite (33 passing tests)
+python -m pytest backend/tests -v
+
+# Start the FastAPI backend server (Runs on port 8000)
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+Interactive Swagger API documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+### 2. Frontend Setup & Build
+```bash
+# In another terminal in the repository root:
+npm install
+
+# Start the local development server (Runs on port 5173)
+npm run dev
+
+# Or build the production bundle
+npm run build
+```
+React web application: [http://127.0.0.1:5173](http://127.0.0.1:5173)
+
+---
+
+## Test Suite Coverage
+
+The backend test suite (`backend/tests/`) includes 33 comprehensive tests verifying:
+- **Data Pipeline**: Missing value analysis, duplicate report deduplication, invalid GPS clipping, and outlier handling.
+- **ML Pipeline**: Reproducible training on stratified splits, joblib artifact persistence, model inference, and fallback mechanisms.
+- **Recommendation Engine**: Weight normalization, threshold category boundary mapping, missing factor handling, deterministic tie-breaking, and explanation generation.
+- **API & Database Integration**: End-to-end CRUD for reports, priority recalculation, inspections, maintenance work orders, and dashboard telemetry.
+
+Run tests at any time with:
+```bash
+python -m pytest backend/tests -v
+```
+

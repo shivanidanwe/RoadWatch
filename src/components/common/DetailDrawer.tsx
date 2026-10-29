@@ -45,30 +45,30 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className={`w-screen ${width} bg-white shadow-2xl flex flex-col border-l border-[#E2E8F0] animate-in slide-in-from-right duration-200`}>
+        <div className={`w-screen ${width} bg-[#211735] shadow-2xl flex flex-col border-l border-[#3B2D53] animate-in slide-in-from-right duration-200 text-[#F5F3FF]`}>
           {/* Header */}
-          <div className="p-5 border-b border-[#E2E8F0] flex items-start justify-between bg-slate-50/70">
+          <div className="p-4 sm:p-5 border-b border-[#3B2D53] flex items-start justify-between bg-[#140E22]">
             <div>
-              <h2 className="text-base font-bold text-[#172033]">{title}</h2>
-              {subtitle && <p className="text-xs text-[#64748B] mt-0.5">{subtitle}</p>}
+              <h2 className="text-base font-bold text-[#F5F3FF]">{title}</h2>
+              {subtitle && <p className="text-xs text-[#B9AECF] mt-0.5">{subtitle}</p>}
             </div>
             <button
               onClick={onClose}
-              className="p-1 rounded-md text-[#94A3B8] hover:text-[#172033] hover:bg-slate-200/60 transition"
+              className="p-1 rounded-md text-[#B9AECF] hover:text-[#F5F3FF] hover:bg-[#2B2042] transition"
               title="Close drawer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Body Content */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
             {children}
           </div>
 
-          {/* Footer */}
+          {/* Optional Footer */}
           {footer && (
-            <div className="p-4 border-t border-[#E2E8F0] bg-slate-50/80 flex items-center justify-end gap-2.5">
+            <div className="p-4 border-t border-[#3B2D53] bg-[#140E22] flex items-center justify-end gap-2.5">
               {footer}
             </div>
           )}

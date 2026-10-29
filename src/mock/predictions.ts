@@ -2,62 +2,6 @@ import { RoadPrediction } from '../types';
 
 export const INITIAL_PREDICTIONS: RoadPrediction[] = [
   {
-    segmentId: 'RD-111',
-    roadName: 'Wholesale Grain Market Approach',
-    ward: 'Ward 7 - West Zone',
-    riskScore: 92,
-    priority: 'Critical',
-    predictedCondition: 'Critical',
-    predictionHorizon: '30 Days',
-    confidenceScore: 94,
-    uncertaintyMargin: '±2.4%',
-    historicalTrend: [
-      { month: 'May', actualRisk: 58, predictedRisk: 55 },
-      { month: 'Jun', actualRisk: 68, predictedRisk: 66 },
-      { month: 'Jul', actualRisk: 78, predictedRisk: 79 },
-      { month: 'Aug', actualRisk: 86, predictedRisk: 85 },
-      { month: 'Sep', actualRisk: 90, predictedRisk: 89 },
-      { month: 'Oct (Current)', actualRisk: 92, predictedRisk: 92 },
-      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 97 }
-    ],
-    factors: {
-      damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
-        score: 95,
-        weight: 35,
-        impact: 'High',
-        description: 'Pavement distress density of 68% with recurrent structural subsidence in wheel tracks.'
-      },
-      trafficIntensity: {
-        name: 'Traffic Volume & Axle Load',
-        score: 90,
-        weight: 25,
-        impact: 'High',
-        description: 'Repeated ESAL (Equivalent Single Axle Load) cycles from overloaded agricultural freight trucks.'
-      },
-      weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
-        score: 92,
-        weight: 20,
-        impact: 'High',
-        description: 'Persistent standing water due to 0% runoff slope into choked storm drain.'
-      },
-      repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
-        score: 88,
-        weight: 20,
-        impact: 'High',
-        description: 'Last full resurfacing was 34 months ago (overdue by 16 months for heavy freight zone).'
-      }
-    },
-    recommendedAction: 'Immediate lane closure & full-depth base reconstruction',
-    explanation: 'Risk score is driven by severe sub-base moisture saturation compounded by 3.8x baseline axle loading. Failure probability within 30 days is estimated at 94% without structural intervention.',
-    dataFreshness: 'Updated 2 hours ago (Sensor + Inspector Survey)',
-    modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'High reliability: Verified by physical inspection INSP-2024-038 with core penetrometer ground truth.',
-    lastUpdated: '2024-10-26 14:00'
-  },
-  {
     segmentId: 'RD-101',
     roadName: 'Mahatma Gandhi Marg (Inner Ring)',
     ward: 'Ward 4 - North Zone',
@@ -65,10 +9,9 @@ export const INITIAL_PREDICTIONS: RoadPrediction[] = [
     priority: 'Critical',
     predictedCondition: 'Critical',
     predictionHorizon: '30 Days',
-    confidenceScore: 91,
-    uncertaintyMargin: '±3.1%',
+    confidenceScore: 92,
+    uncertaintyMargin: '±2.8%',
     historicalTrend: [
-      { month: 'May', actualRisk: 42, predictedRisk: 40 },
       { month: 'Jun', actualRisk: 52, predictedRisk: 50 },
       { month: 'Jul', actualRisk: 68, predictedRisk: 67 },
       { month: 'Aug', actualRisk: 79, predictedRisk: 78 },
@@ -78,40 +21,40 @@ export const INITIAL_PREDICTIONS: RoadPrediction[] = [
     ],
     factors: {
       damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
+        name: 'Damage Severity & Cracks',
         score: 92,
         weight: 35,
         impact: 'High',
-        description: '6 active reported potholes with wide alligator cracking propagation across lane 2.'
+        description: '4 active pothole clusters with alligator cracking propagation across lane 2.'
       },
       trafficIntensity: {
         name: 'Traffic Volume & Axle Load',
-        score: 96,
+        score: 95,
         weight: 25,
         impact: 'High',
-        description: 'Continuous metropolitan bus traffic & 52,000 Passenger Car Units per day.'
+        description: 'Metropolitan bus route carrying over 48,000 PCU daily.'
       },
       weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
+        name: 'Monsoon Flood Inundation',
         score: 85,
         weight: 20,
         impact: 'High',
-        description: 'High runoff velocity overflowing roadside gutters during cloudbursts.'
+        description: 'Stormwater overflow saturates road base during high-intensity rain.'
       },
       repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
-        score: 76,
+        name: 'Maintenance Gap',
+        score: 80,
         weight: 20,
-        impact: 'Moderate',
-        description: 'Patch repairs completed 18 months ago are now dislodging under heavy braking.'
+        impact: 'High',
+        description: 'Last resurfaced 18 months ago, exceeding recommended 12-month heavy cycle.'
       }
     },
     recommendedAction: 'Emergency deep milling, base stabilization & asphalt resurfacing',
-    explanation: 'High traffic volume combined with asphalt stripping around potholes creates an accelerating domino degradation pattern.',
-    dataFreshness: 'Updated 4 hours ago',
+    explanation: 'Urgent intervention needed: High axle loads and sub-base moisture saturation are accelerating cracking toward full structural failure.',
+    dataFreshness: 'Updated 2h ago (Sensors + Inspector Verification)',
     modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'Traffic sensor telemetry is complete (100% uptime); weather radar precipitation verified.',
-    lastUpdated: '2024-10-26 12:30'
+    dataQualityNotes: 'High reliability: Verified by field inspection INSP-2024-001.',
+    lastUpdated: '2024-10-26 14:00'
   },
   {
     segmentId: 'RD-104',
@@ -120,166 +63,108 @@ export const INITIAL_PREDICTIONS: RoadPrediction[] = [
     riskScore: 83,
     priority: 'Critical',
     predictedCondition: 'Critical',
-    predictionHorizon: '60 Days',
-    confidenceScore: 88,
-    uncertaintyMargin: '±4.5%',
+    predictionHorizon: '30 Days',
+    confidenceScore: 89,
+    uncertaintyMargin: '±3.2%',
     historicalTrend: [
-      { month: 'May', actualRisk: 35, predictedRisk: 34 },
-      { month: 'Jun', actualRisk: 46, predictedRisk: 48 },
-      { month: 'Jul', actualRisk: 62, predictedRisk: 60 },
-      { month: 'Aug', actualRisk: 74, predictedRisk: 72 },
-      { month: 'Sep', actualRisk: 79, predictedRisk: 80 },
+      { month: 'Jun', actualRisk: 45, predictedRisk: 44 },
+      { month: 'Jul', actualRisk: 58, predictedRisk: 60 },
+      { month: 'Aug', actualRisk: 72, predictedRisk: 70 },
+      { month: 'Sep', actualRisk: 79, predictedRisk: 78 },
       { month: 'Oct (Current)', actualRisk: 83, predictedRisk: 83 },
-      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 89 }
+      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 88 }
     ],
     factors: {
       damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
-        score: 80,
+        name: 'Damage Severity & Cracks',
+        score: 86,
         weight: 35,
         impact: 'High',
-        description: 'Edge cracking and foundation erosion adjacent to stormwater retaining embankment.'
+        description: 'Edge subsidence and 3 severe potholes reported by patrol units.'
       },
       trafficIntensity: {
         name: 'Traffic Volume & Axle Load',
         score: 75,
         weight: 25,
         impact: 'Moderate',
-        description: 'Moderate urban commuter flow with peak delivery van congestion.'
+        description: 'Substantial commuter traffic connecting central business district.'
       },
       weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
-        score: 98,
+        name: 'Monsoon Flood Inundation',
+        score: 94,
         weight: 20,
         impact: 'High',
-        description: 'Submerged under water 4 times in September; water table remains at roadbed level.'
+        description: 'Frequent lake level rise backs up into drainage culverts.'
       },
       repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
-        score: 82,
+        name: 'Maintenance Gap',
+        score: 78,
         weight: 20,
         impact: 'High',
-        description: '27 months without seal coat or embankment retaining check.'
+        description: '26 months since last full asphalt overlay.'
       }
     },
-    recommendedAction: 'Drainage culvert reconstruction and road elevation lift',
-    explanation: 'Lake seepage and poor runoff geometry are the dominant drivers. Asphalt repairs alone will fail within 60 days without hydrological drainage fix.',
-    dataFreshness: 'Updated 6 hours ago',
+    recommendedAction: 'Stormwater culvert reconstruction & full pavement rehabilitation',
+    explanation: 'Sub-base soil erosion from lake water backflow is the primary cause of sudden surface collapse risk.',
+    dataFreshness: 'Updated 3h ago (Patrol Survey)',
     modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'Water table estimation derived from municipal hydrological piezometers.',
-    lastUpdated: '2024-10-26 10:15'
+    dataQualityNotes: 'High reliability: Cross-referenced with citizen drainage reports.',
+    lastUpdated: '2024-10-26 13:15'
   },
   {
     segmentId: 'RD-102',
-    roadName: 'Old Airport Expressway Section B',
+    roadName: 'Old Airport Expressway',
     ward: 'Ward 8 - East District',
     riskScore: 78,
     priority: 'Critical',
     predictedCondition: 'Poor',
-    predictionHorizon: '90 Days',
-    confidenceScore: 89,
-    uncertaintyMargin: '±3.6%',
+    predictionHorizon: '60 Days',
+    confidenceScore: 91,
+    uncertaintyMargin: '±2.5%',
     historicalTrend: [
-      { month: 'May', actualRisk: 55, predictedRisk: 54 },
-      { month: 'Jun', actualRisk: 60, predictedRisk: 61 },
-      { month: 'Jul', actualRisk: 67, predictedRisk: 68 },
-      { month: 'Aug', actualRisk: 72, predictedRisk: 71 },
-      { month: 'Sep', actualRisk: 75, predictedRisk: 76 },
+      { month: 'Jun', actualRisk: 50, predictedRisk: 48 },
+      { month: 'Jul', actualRisk: 60, predictedRisk: 59 },
+      { month: 'Aug', actualRisk: 68, predictedRisk: 67 },
+      { month: 'Sep', actualRisk: 74, predictedRisk: 73 },
       { month: 'Oct (Current)', actualRisk: 78, predictedRisk: 78 },
-      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 82 }
+      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 83 }
     ],
     factors: {
       damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
+        name: 'Damage Severity & Cracks',
         score: 76,
         weight: 35,
         impact: 'High',
-        description: 'Rut depth averaging 19mm along outer heavy-vehicle transit corridor.'
-      },
-      trafficIntensity: {
-        name: 'Traffic Volume & Axle Load',
-        score: 94,
-        weight: 25,
-        impact: 'High',
-        description: 'Interstate airport logistics freight vehicles running round-the-clock.'
-      },
-      weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
-        score: 65,
-        weight: 20,
-        impact: 'Moderate',
-        description: 'Adequate longitudinal storm drains but cross-fall slope flattened by rutting.'
-      },
-      repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
-        score: 74,
-        weight: 20,
-        impact: 'Moderate',
-        description: 'Overlay was carried out 23 months ago with standard bitumen rather than polymer-modified.'
-      }
-    },
-    recommendedAction: 'Structural mill and overlay with Polymer Modified Bitumen (PMB)',
-    explanation: 'Rutting depth is rapidly approaching critical aquaplaning threshold (20mm). Pavement requires milling before winter rains.',
-    dataFreshness: 'Updated 1 day ago',
-    modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'Laser profilometer mobile scan data ingested.',
-    lastUpdated: '2024-10-25 18:20'
-  },
-  {
-    segmentId: 'RD-109',
-    roadName: 'Outer Ring Highway Exit 14-A',
-    ward: 'Ward 10 - South East',
-    riskScore: 76,
-    priority: 'Critical',
-    predictedCondition: 'Poor',
-    predictionHorizon: '60 Days',
-    confidenceScore: 86,
-    uncertaintyMargin: '±4.0%',
-    historicalTrend: [
-      { month: 'May', actualRisk: 48, predictedRisk: 47 },
-      { month: 'Jun', actualRisk: 55, predictedRisk: 56 },
-      { month: 'Jul', actualRisk: 64, predictedRisk: 62 },
-      { month: 'Aug', actualRisk: 69, predictedRisk: 70 },
-      { month: 'Sep', actualRisk: 73, predictedRisk: 74 },
-      { month: 'Oct (Current)', actualRisk: 76, predictedRisk: 76 },
-      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 81 }
-    ],
-    factors: {
-      damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
-        score: 75,
-        weight: 35,
-        impact: 'High',
-        description: 'Severe skid resistance loss and stone ravelling on tight curve.'
+        description: '18mm wheel-path rutting and longitudinal micro-cracks.'
       },
       trafficIntensity: {
         name: 'Traffic Volume & Axle Load',
         score: 92,
         weight: 25,
         impact: 'High',
-        description: 'High deceleration braking zone at interchange off-ramp.'
+        description: 'Continuous night freight logistics corridor.'
       },
       weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
-        score: 60,
+        name: 'Monsoon Flood Inundation',
+        score: 65,
         weight: 20,
         impact: 'Moderate',
-        description: 'Elevated ramp clears water well but wind-driven rain increases wet-skid hazard.'
+        description: 'Moderate surface runoff with functioning side ditches.'
       },
       repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
+        name: 'Maintenance Gap',
         score: 72,
         weight: 20,
         impact: 'Moderate',
-        description: '29 months since last friction course treatment.'
+        description: '23 months since last bituminous maintenance.'
       }
     },
-    recommendedAction: 'Apply high-friction calcined bauxite epoxy surfacing',
-    explanation: 'Safety critical priority: rapid loss of microtexture significantly elevates vehicle crash probability in wet weather.',
-    dataFreshness: 'Updated 2 days ago',
+    recommendedAction: 'Structural asphalt overlay with polymer-modified binder',
+    explanation: 'Repetitive heavy axle load is consolidating the surface layer; mill-and-fill will restore skid resistance.',
+    dataFreshness: 'Updated 5h ago (Automated Traffic Counters)',
     modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'Skid resistance survey verified by Er. David Wilson.',
-    lastUpdated: '2024-10-24 16:30'
+    dataQualityNotes: 'Verified with Weigh-In-Motion sensors.',
+    lastUpdated: '2024-10-26 11:30'
   },
   {
     segmentId: 'RD-103',
@@ -288,165 +173,162 @@ export const INITIAL_PREDICTIONS: RoadPrediction[] = [
     riskScore: 72,
     priority: 'High',
     predictedCondition: 'Poor',
-    predictionHorizon: '90 Days',
-    confidenceScore: 85,
-    uncertaintyMargin: '±4.8%',
+    predictionHorizon: '60 Days',
+    confidenceScore: 88,
+    uncertaintyMargin: '±3.5%',
     historicalTrend: [
-      { month: 'May', actualRisk: 44, predictedRisk: 42 },
-      { month: 'Jun', actualRisk: 51, predictedRisk: 53 },
-      { month: 'Jul', actualRisk: 59, predictedRisk: 61 },
-      { month: 'Aug', actualRisk: 65, predictedRisk: 64 },
-      { month: 'Sep', actualRisk: 68, predictedRisk: 69 },
+      { month: 'Jun', actualRisk: 46, predictedRisk: 45 },
+      { month: 'Jul', actualRisk: 54, predictedRisk: 53 },
+      { month: 'Aug', actualRisk: 62, predictedRisk: 61 },
+      { month: 'Sep', actualRisk: 67, predictedRisk: 68 },
       { month: 'Oct (Current)', actualRisk: 72, predictedRisk: 72 },
-      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 77 }
+      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 76 }
     ],
     factors: {
       damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
-        score: 71,
+        name: 'Damage Severity & Cracks',
+        score: 70,
         weight: 35,
-        impact: 'High',
-        description: 'Edge breaks and emerging pothole clusters near factory dispatch bays.'
+        impact: 'Moderate',
+        description: 'Localized edge raveling and 2 isolated pothole clusters.'
       },
       trafficIntensity: {
         name: 'Traffic Volume & Axle Load',
         score: 84,
         weight: 25,
         impact: 'High',
-        description: 'Industrial heavy goods carriers and container flatbeds.'
+        description: 'Heavy industrial vehicle turnaround zone.'
       },
       weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
-        score: 62,
+        name: 'Monsoon Flood Inundation',
+        score: 60,
         weight: 20,
         impact: 'Moderate',
-        description: 'Flat topography leading to slow gutter runoff.'
+        description: 'Adequate culvert gradient with localized ponding.'
       },
       repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
+        name: 'Maintenance Gap',
         score: 68,
         weight: 20,
         impact: 'Moderate',
-        description: '21 months since patch maintenance.'
+        description: '21 months since edge seal coat was placed.'
       }
     },
-    recommendedAction: 'Shoulder edge beam installation & deep patching',
-    explanation: 'Edge breakout is propagating inward. Installing concrete edge kerbs will contain lateral subgrade displacement.',
-    dataFreshness: 'Updated 1 day ago',
+    recommendedAction: 'Selective pothole patching, edge reinforcement & seal coat',
+    explanation: 'Truck turning maneuvers are breaking up outer lane edges; reinforced shoulder apron will halt degradation.',
+    dataFreshness: 'Updated 6h ago',
     modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'Traffic counts estimated from toll gantry sensor logs.',
-    lastUpdated: '2024-10-25 11:00'
+    dataQualityNotes: 'Standard confidence rating.',
+    lastUpdated: '2024-10-26 10:00'
   },
   {
-    segmentId: 'RD-108',
-    roadName: 'Railway Colony Feeder Way',
-    ward: 'Ward 2 - Central Railway',
-    riskScore: 54,
-    priority: 'High',
+    segmentId: 'RD-106',
+    roadName: 'Metro North Link',
+    ward: 'Ward 2 - Uptown',
+    riskScore: 52,
+    priority: 'Medium',
     predictedCondition: 'Fair',
-    predictionHorizon: '180 Days',
-    confidenceScore: 81,
-    uncertaintyMargin: '±5.2%',
+    predictionHorizon: '90 Days',
+    confidenceScore: 90,
+    uncertaintyMargin: '±2.2%',
     historicalTrend: [
-      { month: 'May', actualRisk: 38, predictedRisk: 37 },
-      { month: 'Jun', actualRisk: 42, predictedRisk: 41 },
-      { month: 'Jul', actualRisk: 46, predictedRisk: 47 },
-      { month: 'Aug', actualRisk: 50, predictedRisk: 49 },
-      { month: 'Sep', actualRisk: 52, predictedRisk: 53 },
-      { month: 'Oct (Current)', actualRisk: 54, predictedRisk: 54 },
-      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 59 }
+      { month: 'Jun', actualRisk: 38, predictedRisk: 37 },
+      { month: 'Jul', actualRisk: 42, predictedRisk: 43 },
+      { month: 'Aug', actualRisk: 46, predictedRisk: 46 },
+      { month: 'Sep', actualRisk: 49, predictedRisk: 50 },
+      { month: 'Oct (Current)', actualRisk: 52, predictedRisk: 52 },
+      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 55 }
     ],
     factors: {
       damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
-        score: 52,
+        name: 'Damage Severity & Cracks',
+        score: 48,
         weight: 35,
         impact: 'Moderate',
-        description: 'Transverse thermal cracks with minimal raveling.'
+        description: 'Minor joint spalling and fine hairline cracks.'
       },
       trafficIntensity: {
         name: 'Traffic Volume & Axle Load',
         score: 55,
         weight: 25,
         impact: 'Moderate',
-        description: 'Medium traffic consisting mainly of autorickshaws and delivery tempos.'
+        description: 'Moderate passenger car and light commercial volume.'
       },
       weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
-        score: 72,
-        weight: 20,
-        impact: 'High',
-        description: 'Low-lying depression near railway underpass prone to monsoon ponding.'
-      },
-      repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
-        score: 42,
+        name: 'Monsoon Flood Inundation',
+        score: 45,
         weight: 20,
         impact: 'Low',
-        description: 'Routine seal maintenance conducted 25 months ago.'
+        description: 'Elevated terrain with fast stormwater disposal.'
+      },
+      repairHistory: {
+        name: 'Maintenance Gap',
+        score: 56,
+        weight: 20,
+        impact: 'Moderate',
+        description: '16 months since joint sealant renewal.'
       }
     },
-    recommendedAction: 'Crack sealing and micro-surfacing prior to winter',
-    explanation: 'Early crack routing and rubberized bitumen sealing will prevent water intrusion into subgrade during the next seasonal rain spell.',
-    dataFreshness: 'Updated 3 days ago',
+    recommendedAction: 'Localized crack sealing & surface grinding',
+    explanation: 'Concrete slabs are structurally solid; preventative joint sealing will keep water out of base layers.',
+    dataFreshness: 'Updated 1 day ago',
     modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'Moderate confidence: Ward 2 drainage plan update pending.',
-    lastUpdated: '2024-10-23 09:40'
+    dataQualityNotes: 'High visual survey quality.',
+    lastUpdated: '2024-10-25 16:30'
   },
   {
     segmentId: 'RD-105',
-    roadName: 'Heritage Commercial Spine Road',
-    ward: 'Ward 1 - Downtown Core',
-    riskScore: 46,
-    priority: 'Medium',
-    predictedCondition: 'Fair',
-    predictionHorizon: '180 Days',
-    confidenceScore: 87,
-    uncertaintyMargin: '±3.8%',
+    roadName: 'Tech Hub Boulevard',
+    ward: 'Ward 6 - Silicon Corridor',
+    riskScore: 28,
+    priority: 'Low',
+    predictedCondition: 'Good',
+    predictionHorizon: '90 Days',
+    confidenceScore: 95,
+    uncertaintyMargin: '±1.8%',
     historicalTrend: [
-      { month: 'May', actualRisk: 32, predictedRisk: 30 },
-      { month: 'Jun', actualRisk: 36, predictedRisk: 35 },
-      { month: 'Jul', actualRisk: 40, predictedRisk: 41 },
-      { month: 'Aug', actualRisk: 42, predictedRisk: 43 },
-      { month: 'Sep', actualRisk: 45, predictedRisk: 44 },
-      { month: 'Oct (Current)', actualRisk: 46, predictedRisk: 46 },
-      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 49 }
+      { month: 'Jun', actualRisk: 22, predictedRisk: 21 },
+      { month: 'Jul', actualRisk: 24, predictedRisk: 23 },
+      { month: 'Aug', actualRisk: 26, predictedRisk: 25 },
+      { month: 'Sep', actualRisk: 27, predictedRisk: 27 },
+      { month: 'Oct (Current)', actualRisk: 28, predictedRisk: 28 },
+      { month: 'Nov (Forecast)', actualRisk: 0, predictedRisk: 30 }
     ],
     factors: {
       damageSeverity: {
-        name: 'Damage Severity & Cracking Index',
-        score: 45,
+        name: 'Damage Severity & Cracks',
+        score: 20,
         weight: 35,
-        impact: 'Moderate',
-        description: 'Interlocking pavers showing minor differential settlement.'
+        impact: 'Low',
+        description: 'Zero potholes; concrete slabs in excellent condition.'
       },
       trafficIntensity: {
         name: 'Traffic Volume & Axle Load',
-        score: 68,
+        score: 50,
         weight: 25,
         impact: 'Moderate',
-        description: 'High slow-moving delivery vehicle counts during morning shop loading.'
+        description: 'High commuter volume but light vehicle weight class.'
       },
       weatherExposure: {
-        name: 'Monsoon Runoff & Flood Inundation',
-        score: 30,
+        name: 'Monsoon Flood Inundation',
+        score: 25,
         weight: 20,
         impact: 'Low',
-        description: 'Good gradient towards underground municipal drainage collectors.'
+        description: 'Engineered underground stormwater drains.'
       },
       repairHistory: {
-        name: 'Maintenance Gap & Repair Age',
-        score: 38,
+        name: 'Maintenance Gap',
+        score: 18,
         weight: 20,
         impact: 'Low',
-        description: 'Repaved 14 months ago; bedding sand stable.'
+        description: 'Recently constructed with durable concrete specifications.'
       }
     },
-    recommendedAction: 'Targeted resetting of sunken pavers in pedestrian bays',
-    explanation: 'Isolated paver settlement caused by delivery truck parking. Sub-base is intact; full resurfacing is unnecessary.',
+    recommendedAction: 'Routine visual inspection & joint seal maintenance',
+    explanation: 'Pavement performance is optimal with low probability of deterioration over next 180 days.',
     dataFreshness: 'Updated 2 days ago',
     modelVersion: 'v2.4-RandomForest-Ensemble',
-    dataQualityNotes: 'High visual survey quality.',
-    lastUpdated: '2024-10-24 11:20'
+    dataQualityNotes: 'Sensor telemetry operational.',
+    lastUpdated: '2024-10-24 15:00'
   }
 ];

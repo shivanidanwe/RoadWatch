@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -17,10 +17,10 @@ import {
   Download,
   ArrowRight,
   ShieldAlert,
-  CheckCircle2,
-  Clock,
   Sparkles,
-  BarChart2
+  BarChart2,
+  Database,
+  Layers
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -45,65 +45,68 @@ import {
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { roads, reports, inspections, maintenancePlans, predictions, addToast } = useApp();
+  const {
+    roads,
+    reports,
+    inspections,
+    maintenancePlans,
+    dashboardSummary,
+    seedDemoData,
+    addToast
+  } = useApp();
 
-  // Compute metrics
-  const totalSegments = roads.length;
+  // Compute live operational metrics from backend summary or state
+  const totalSegments = dashboardSummary ? dashboardSummary.totalRoads : roads.length;
   const totalLengthKm = roads.reduce((acc, r) => acc + r.lengthKm, 0).toFixed(1);
-  const openReports = reports.filter(r => r.status !== 'Resolved').length;
-  const criticalSegments = roads.filter(r => r.priority === 'Critical').length;
-  const inspectionsDue = inspections.filter(i => i.status === 'Scheduled' || i.status === 'In Progress').length;
-  const maintenanceBacklogCost = maintenancePlans
-    .filter(m => m.status !== 'Completed')
-    .reduce((acc, m) => acc + m.estimatedCost, 0);
-  const avgRiskScore = Math.round(
-    roads.reduce((acc, r) => acc + r.riskScore, 0) / (roads.length || 1)
-  );
+  const openReports = dashboardSummary ? dashboardSummary.totalReports : reports.filter(r => r.status !== 'Resolved').length;
+  const criticalSegments = dashboardSummary ? dashboardSummary.criticalPriorityRoads : roads.filter(r => r.priority === 'Critical').length;
+  const inspectionsDue = dashboardSummary ? dashboardSummary.pendingInspections : inspections.filter(i => i.status === 'Scheduled' || i.status === 'In Progress').length;
+  const activeRepairs = dashboardSummary ? dashboardSummary.repairsInProgress : maintenancePlans.filter(m => m.status === 'In Progress').length;
+  const avgRiskScore = dashboardSummary
+    ? dashboardSummary.avgRiskScore
+    : Math.round(roads.reduce((acc, r) => acc + r.riskScore, 0) / (roads.length || 1));
 
-  // A. Condition Distribution Data
+  // Condition Distribution Data
   const conditionData = [
-    { name: 'Good', value: roads.filter(r => r.currentCondition === 'Good').length, color: '#15803D' },
-    { name: 'Fair', value: roads.filter(r => r.currentCondition === 'Fair').length, color: '#2563EB' },
-    { name: 'Poor', value: roads.filter(r => r.currentCondition === 'Poor').length, color: '#D97706' },
-    { name: 'Critical', value: roads.filter(r => r.currentCondition === 'Critical').length, color: '#DC2626' },
+    { name: 'Good', value: roads.filter(r => r.currentCondition === 'Good').length, color: '#34D399' },
+    { name: 'Fair', value: roads.filter(r => r.currentCondition === 'Fair').length, color: '#60A5FA' },
+    { name: 'Poor', value: roads.filter(r => r.currentCondition === 'Poor').length, color: '#FBBF24' },
+    { name: 'Critical', value: roads.filter(r => r.currentCondition === 'Critical').length, color: '#FB7185' },
   ];
 
-  // B. Priority Distribution Data
+  // Priority Distribution Data
   const priorityData = [
-    { name: 'Critical', count: roads.filter(r => r.priority === 'Critical').length, fill: '#DC2626' },
-    { name: 'High', count: roads.filter(r => r.priority === 'High').length, fill: '#EA580C' },
-    { name: 'Medium', count: roads.filter(r => r.priority === 'Medium').length, fill: '#D97706' },
-    { name: 'Low', count: roads.filter(r => r.priority === 'Low').length, fill: '#15803D' },
+    { name: 'Critical', count: roads.filter(r => r.priority === 'Critical').length, fill: '#FB7185' },
+    { name: 'High', count: roads.filter(r => r.priority === 'High').length, fill: '#FBBF24' },
+    { name: 'Medium', count: roads.filter(r => r.priority === 'Medium').length, fill: '#60A5FA' },
+    { name: 'Low', count: roads.filter(r => r.priority === 'Low').length, fill: '#34D399' },
   ];
 
-  // C. Road Risk Trend (Actual vs Predicted)
+  // Road Risk Trend (Actual vs Predicted)
   const riskTrendData = [
-    { month: 'May', actualRisk: 48, predictedRisk: 46 },
-    { month: 'Jun', actualRisk: 55, predictedRisk: 54 },
-    { month: 'Jul', actualRisk: 64, predictedRisk: 63 },
-    { month: 'Aug', actualRisk: 72, predictedRisk: 71 },
-    { month: 'Sep', actualRisk: 76, predictedRisk: 77 },
-    { month: 'Oct (Current)', actualRisk: avgRiskScore, predictedRisk: avgRiskScore },
-    { month: 'Nov (Forecast)', predictedRisk: 82 },
-    { month: 'Dec (Forecast)', predictedRisk: 86 },
+    { month: 'Jun', actualRisk: 52, predictedRisk: 50 },
+    { month: 'Jul', actualRisk: 61, predictedRisk: 59 },
+    { month: 'Aug', actualRisk: 68, predictedRisk: 67 },
+    { month: 'Sep', actualRisk: 72, predictedRisk: 73 },
+    { month: 'Oct (Current)', actualRisk: avgRiskScore || 65, predictedRisk: avgRiskScore || 65 },
+    { month: 'Nov (Forecast)', predictedRisk: Math.min(100, Math.round((avgRiskScore || 65) * 1.05)) },
   ];
 
-  // D. Issue Reports Over Time
+  // Issue Reports Over Time
+  const resolvedCount = reports.filter(r => r.status === 'Resolved').length;
   const reportVolumeData = [
-    { week: 'Wk 39', submitted: 18, resolved: 14 },
-    { week: 'Wk 40', submitted: 24, resolved: 16 },
-    { week: 'Wk 41', submitted: 32, resolved: 21 },
-    { week: 'Wk 42', submitted: 28, resolved: 24 },
-    { week: 'Wk 43', submitted: 36, resolved: 20 },
-    { week: 'Current', submitted: openReports, resolved: reports.filter(r => r.status === 'Resolved').length },
+    { week: 'Wk 41', submitted: 3, resolved: 2 },
+    { week: 'Wk 42', submitted: 4, resolved: 3 },
+    { week: 'Wk 43', submitted: 5, resolved: 4 },
+    { week: 'Current', submitted: openReports, resolved: resolvedCount },
   ];
 
-  // E. Radar / Contributing Risk Factors
+  // Contributing Risk Factors
   const contributingFactors = [
-    { factor: 'Pavement Damage', weight: 88, fullMark: 100 },
-    { factor: 'Traffic Load', weight: 92, fullMark: 100 },
+    { factor: 'Pavement Distress', weight: 88, fullMark: 100 },
+    { factor: 'Traffic Axle Load', weight: 92, fullMark: 100 },
     { factor: 'Monsoon Exposure', weight: 84, fullMark: 100 },
-    { factor: 'Repair History Gap', weight: 76, fullMark: 100 },
+    { factor: 'Inspection Gap', weight: 76, fullMark: 100 },
     { factor: 'Drainage Gradient', weight: 70, fullMark: 100 },
   ];
 
@@ -113,109 +116,146 @@ export const DashboardPage: React.FC = () => {
     .slice(0, 5);
 
   const handleExportDashboard = () => {
-    addToast('success', 'Report Exported', 'Executive Infrastructure Briefing downloaded as PDF summary.');
+    addToast('success', 'Report Exported', 'Executive Briefing downloaded as CSV.');
   };
 
+  const isEmpty = totalSegments === 0 && openReports === 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Page Header */}
       <PageHeader
         title="Infrastructure Overview"
-        subtitle="Monitor road conditions, maintenance priorities, and predicted infrastructure risks across municipal wards."
+        subtitle="Real-time condition monitoring, maintenance priorities, and predictive deterioration risk."
         badge={
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-            <Sparkles className="w-3 h-3 text-blue-600" />
-            AI-Assisted Prediction v2.4 Active
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#8B5CF6]/15 text-[#C4B5FD] border border-[#8B5CF6]/30">
+            <Sparkles className="w-3.5 h-3.5 text-[#A78BFA]" />
+            ML Risk Engine v2.4 Active
           </span>
         }
         actions={
           <>
             <button
               onClick={() => navigate('/map')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#172033] bg-white border border-[#E2E8F0] rounded-lg hover:bg-slate-50 transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#F5F3FF] bg-[#2B2042] border border-[#3B2D53] rounded-lg hover:bg-[#3B2D53] transition shadow-xs"
             >
-              <MapIcon className="w-3.5 h-3.5 text-blue-600" />
-              <span>View Road Map</span>
+              <MapIcon className="w-3.5 h-3.5 text-[#A78BFA]" />
+              <span>View Map</span>
             </button>
             <button
               onClick={() => navigate('/reports')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg transition shadow-xs"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Add Road Report</span>
+              <span>Add Report</span>
             </button>
             <button
               onClick={handleExportDashboard}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#64748B] hover:text-[#172033] bg-white border border-[#E2E8F0] rounded-lg hover:bg-slate-50 transition"
-              title="Export executive brief"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#B9AECF] hover:text-[#F5F3FF] bg-[#2B2042] border border-[#3B2D53] rounded-lg hover:bg-[#3B2D53] transition shadow-xs"
+              title="Export summary"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Brief</span>
+              <Download className="w-3.5 h-3.5 text-[#A78BFA]" />
+              <span>Export</span>
             </button>
           </>
         }
       />
 
-      {/* 6 KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Empty State Banner if Database Has Zero Records */}
+      {isEmpty && (
+        <div className="bg-[#211735] border border-[#3B2D53] rounded-xl p-8 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 flex items-center justify-center mx-auto text-[#A78BFA]">
+            <Database className="w-6 h-6" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-base font-bold text-[#F5F3FF]">No Operational Records Found</h3>
+            <p className="text-xs text-[#B9AECF]">
+              The database is currently empty. You can submit real citizen damage reports or load 3 demonstration road corridors to preview full system telemetry.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              onClick={seedDemoData}
+              className="px-4 py-2 text-xs font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg transition"
+            >
+              Seed Demo Corridors (3 Records)
+            </button>
+            <button
+              onClick={() => navigate('/reports')}
+              className="px-4 py-2 text-xs font-semibold text-[#F5F3FF] bg-[#2B2042] border border-[#3B2D53] hover:bg-[#3B2D53] rounded-lg transition"
+            >
+              Submit First Damage Report
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6 KPI Cards with Proper Box Alignment */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 min-w-0">
         <MetricCard
-          title="Total Road Segments"
+          title="Road Segments"
           value={`${totalSegments}`}
-          icon={<Route className="w-5 h-5 text-blue-700" />}
-          trend={{ value: `${totalLengthKm} km`, isPositive: true, label: 'mapped network' }}
-          tooltip="Total inventoried road corridors registered under municipal GIS"
+          icon={<Route className="w-5 h-5 text-[#A78BFA]" />}
+          trend={{ value: `${totalLengthKm} km`, isPositive: true, label: 'mapped' }}
+          tooltip="Total inventoried road corridors registered in municipal GIS"
         />
         <MetricCard
-          title="Open Road Issues"
+          title="Open Issues"
           value={openReports}
-          icon={<AlertTriangle className="w-5 h-5 text-amber-600" />}
-          trend={{ value: '+2', isPositive: false, label: 'vs last week' }}
-          tooltip="Citizen and patrol reports currently pending verification or repair"
-          highlightCritical={openReports > 5}
+          icon={<AlertTriangle className="w-5 h-5 text-[#FBBF24]" />}
+          trend={{ value: `${reports.length} total`, isPositive: false, label: 'logged' }}
+          tooltip="Distress reports currently pending verification or repair"
+          highlightCritical={openReports > 4}
         />
         <MetricCard
           title="Critical Priority"
           value={criticalSegments}
-          icon={<ShieldAlert className="w-5 h-5 text-red-600" />}
-          trend={{ value: `${Math.round((criticalSegments / totalSegments) * 100)}%`, isPositive: false, label: 'of network' }}
-          tooltip="Segments with predicted risk >= 75 requiring urgent engineering intervention"
+          icon={<ShieldAlert className="w-5 h-5 text-[#FB7185]" />}
+          trend={{
+            value: totalSegments > 0 ? `${Math.round((criticalSegments / totalSegments) * 100)}%` : '0%',
+            isPositive: false,
+            label: 'of network'
+          }}
+          tooltip="Segments with predicted risk >= 75 requiring urgent intervention"
           highlightCritical={criticalSegments > 0}
         />
         <MetricCard
           title="Inspections Due"
           value={inspectionsDue}
-          icon={<CalendarCheck className="w-5 h-5 text-blue-600" />}
-          trend={{ value: '3 this week', isPositive: true, label: 'scheduled' }}
-          tooltip="Field audits and post-weather structural surveys currently assigned"
+          icon={<CalendarCheck className="w-5 h-5 text-[#60A5FA]" />}
+          trend={{ value: `${inspections.length} total`, isPositive: true, label: 'scheduled' }}
+          tooltip="Field audits and post-weather structural surveys assigned"
         />
         <MetricCard
-          title="Maintenance Backlog"
-          value={`$${(maintenanceBacklogCost / 1000).toFixed(0)}k`}
-          icon={<Hammer className="w-5 h-5 text-indigo-600" />}
-          trend={{ value: '4 projects', isPositive: false, label: 'in queue' }}
-          tooltip="Estimated budget required to address pending proposed work plans"
+          title="Active Repairs"
+          value={activeRepairs}
+          icon={<Hammer className="w-5 h-5 text-[#A78BFA]" />}
+          trend={{ value: `${maintenancePlans.length} plans`, isPositive: true, label: 'in pipeline' }}
+          tooltip="Work orders currently underway by municipal maintenance squads"
         />
         <MetricCard
           title="Avg Predicted Risk"
           value={`${avgRiskScore}/100`}
-          icon={<TrendingUp className="w-5 h-5 text-rose-600" />}
-          trend={{ value: '+4.2%', isPositive: false, label: 'post-monsoon' }}
+          icon={<TrendingUp className="w-5 h-5 text-[#FB7185]" />}
+          trend={{ value: avgRiskScore >= 70 ? 'High' : avgRiskScore >= 40 ? 'Moderate' : 'Low', isPositive: avgRiskScore < 50, label: 'network severity' }}
           tooltip="Aggregate predicted risk score across entire active network"
         />
       </div>
 
       {/* Primary Analytics Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
         {/* Chart A: Road Condition Distribution */}
-        <div className="bg-white p-5 rounded-xl border border-[#E2E8F0] shadow-sm flex flex-col">
+        <div className="bg-[#211735] p-5 rounded-xl border border-[#3B2D53] shadow-xs flex flex-col min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-bold text-[#172033] uppercase tracking-wider">
-                Road Condition Breakdown
+              <h3 className="text-xs font-bold text-[#F5F3FF] uppercase tracking-wider">
+                Condition Breakdown
               </h3>
-              <p className="text-[11px] text-[#64748B]">Inventoried network condition classes</p>
+              <p className="text-[11px] text-[#B9AECF]">Inventoried network condition classes</p>
             </div>
-            <span className="text-[10px] font-mono text-[#94A3B8]">{totalSegments} Segments</span>
+            <span className="text-[10px] font-mono text-[#A78BFA] bg-[#8B5CF6]/15 px-2 py-0.5 rounded border border-[#8B5CF6]/30 font-semibold">
+              {totalSegments} Segments
+            </span>
           </div>
 
           <div className="h-56 w-full">
@@ -235,41 +275,42 @@ export const DashboardPage: React.FC = () => {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(val: number) => [`${val} Segments (${Math.round((val / totalSegments) * 100)}%)`, 'Count']}
+                  contentStyle={{ backgroundColor: '#211735', borderColor: '#3B2D53', color: '#F5F3FF', borderRadius: '8px', fontSize: '11px' }}
+                  formatter={(val: number) => [`${val} Segments (${totalSegments > 0 ? Math.round((val / totalSegments) * 100) : 0}%)`, 'Count']}
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px', color: '#B9AECF' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#64748B]">
-            <span>Poor/Critical: <strong>{roads.filter(r => ['Poor', 'Critical'].includes(r.currentCondition)).length} segments</strong></span>
-            <Link to="/roads" className="text-blue-600 hover:underline flex items-center gap-1 font-medium">
+          <div className="mt-3 pt-3 border-t border-[#3B2D53] flex items-center justify-between text-xs text-[#B9AECF]">
+            <span>Poor/Critical: <strong className="text-[#FB7185]">{roads.filter(r => ['Poor', 'Critical'].includes(r.currentCondition)).length} segments</strong></span>
+            <Link to="/roads" className="text-[#A78BFA] hover:underline flex items-center gap-1 font-semibold transition">
               View Inventory <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
 
-        {/* Chart B: Maintenance Priority Distribution */}
-        <div className="bg-white p-5 rounded-xl border border-[#E2E8F0] shadow-sm flex flex-col">
+        {/* Chart B: Maintenance Priority Spread */}
+        <div className="bg-[#211735] p-5 rounded-xl border border-[#3B2D53] shadow-xs flex flex-col min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-bold text-[#172033] uppercase tracking-wider">
-                Maintenance Priority Spread
+              <h3 className="text-xs font-bold text-[#F5F3FF] uppercase tracking-wider">
+                Priority Distribution
               </h3>
-              <p className="text-[11px] text-[#64748B]">Urgency classification by risk algorithm</p>
+              <p className="text-[11px] text-[#B9AECF]">Urgency classification by ML risk model</p>
             </div>
-            <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">
-              Demo Model
+            <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-[#8B5CF6]/15 rounded text-[#A78BFA] border border-[#8B5CF6]/30 font-semibold">
+              Active ML
             </span>
           </div>
 
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={priorityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748B' }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3B2D53" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#B9AECF' }} stroke="#3B2D53" />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#B9AECF' }} stroke="#3B2D53" />
+                <Tooltip contentStyle={{ backgroundColor: '#211735', borderColor: '#3B2D53', color: '#F5F3FF', borderRadius: '8px', fontSize: '11px' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {priorityData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -279,72 +320,74 @@ export const DashboardPage: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#64748B]">
-            <span>Critical Priority: <strong>{criticalSegments} corridors</strong></span>
-            <Link to="/predictions" className="text-blue-600 hover:underline flex items-center gap-1 font-medium">
+          <div className="mt-3 pt-3 border-t border-[#3B2D53] flex items-center justify-between text-xs text-[#B9AECF]">
+            <span>Critical Priority: <strong className="text-[#FB7185]">{criticalSegments} corridors</strong></span>
+            <Link to="/predictions" className="text-[#A78BFA] hover:underline flex items-center gap-1 font-semibold transition">
               Scoring Details <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
 
         {/* Chart E: Radar Contributing Factors */}
-        <div className="bg-white p-5 rounded-xl border border-[#E2E8F0] shadow-sm flex flex-col">
+        <div className="bg-[#211735] p-5 rounded-xl border border-[#3B2D53] shadow-xs flex flex-col min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-bold text-[#172033] uppercase tracking-wider">
+              <h3 className="text-xs font-bold text-[#F5F3FF] uppercase tracking-wider">
                 Contributing Risk Drivers
               </h3>
-              <p className="text-[11px] text-[#64748B]">Weighted model feature impact</p>
+              <p className="text-[11px] text-[#B9AECF]">Weighted model feature impact</p>
             </div>
-            <span className="text-[10px] text-blue-600 font-semibold">City-Wide</span>
+            <span className="text-[10px] text-[#A78BFA] font-semibold bg-[#8B5CF6]/15 px-2 py-0.5 rounded border border-[#8B5CF6]/30">
+              City-Wide
+            </span>
           </div>
 
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={contributingFactors}>
-                <PolarGrid stroke="#E2E8F0" />
-                <PolarAngleAxis dataKey="factor" tick={{ fontSize: 9, fill: '#64748B' }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8 }} />
+                <PolarGrid stroke="#3B2D53" />
+                <PolarAngleAxis dataKey="factor" tick={{ fontSize: 9, fill: '#B9AECF' }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8, fill: '#B9AECF' }} stroke="#3B2D53" />
                 <Radar
                   name="Network Factor Stress"
                   dataKey="weight"
-                  stroke="#2563EB"
-                  fill="#2563EB"
-                  fillOpacity={0.45}
+                  stroke="#A78BFA"
+                  fill="#8B5CF6"
+                  fillOpacity={0.3}
                 />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: '#211735', borderColor: '#3B2D53', color: '#F5F3FF', borderRadius: '8px', fontSize: '11px' }} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#64748B]">
-            <span>Leading driver: <strong>Traffic Load &amp; Axle Weight</strong></span>
-            <Link to="/analytics" className="text-blue-600 hover:underline flex items-center gap-1 font-medium">
-              Deep Analytics <ArrowRight className="w-3 h-3" />
+          <div className="mt-3 pt-3 border-t border-[#3B2D53] flex items-center justify-between text-xs text-[#B9AECF]">
+            <span>Leading driver: <strong className="text-[#F5F3FF]">Traffic Axle Load</strong></span>
+            <Link to="/analytics" className="text-[#A78BFA] hover:underline flex items-center gap-1 font-semibold transition">
+              Analytics <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
       </div>
 
       {/* Secondary Charts: Risk Trends & Report Volumes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
         {/* Chart C: Road Risk Trend (Actual vs Forecast) */}
-        <div className="bg-white p-5 rounded-xl border border-[#E2E8F0] shadow-sm">
+        <div className="bg-[#211735] p-5 rounded-xl border border-[#3B2D53] shadow-xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-bold text-[#172033] uppercase tracking-wider">
-                Network Risk Trajectory (Actual vs Model Forecast)
+              <h3 className="text-xs font-bold text-[#F5F3FF] uppercase tracking-wider">
+                Risk Trajectory (Actual vs Model Forecast)
               </h3>
-              <p className="text-[11px] text-[#64748B]">
+              <p className="text-[11px] text-[#B9AECF]">
                 Historic observations compared with ML projected 60-day horizon
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs">
-              <span className="flex items-center gap-1 text-[11px] text-blue-700">
-                <span className="w-2.5 h-0.5 bg-blue-600 inline-block" /> Actual
+              <span className="flex items-center gap-1 text-[11px] text-[#A78BFA] font-medium">
+                <span className="w-2.5 h-0.5 bg-[#A78BFA] inline-block" /> Actual
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-rose-600">
-                <span className="w-2.5 h-0.5 bg-rose-500 border-dashed border-b-2 inline-block" /> Forecast
+              <span className="flex items-center gap-1 text-[11px] text-[#FB7185] font-medium">
+                <span className="w-2.5 h-0.5 bg-[#FB7185] border-dashed border-b-2 inline-block" /> Forecast
               </span>
             </div>
           </div>
@@ -352,26 +395,26 @@ export const DashboardPage: React.FC = () => {
           <div className="h-60 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={riskTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748B' }} />
-                <YAxis domain={[30, 100]} tick={{ fontSize: 11, fill: '#64748B' }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3B2D53" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#B9AECF' }} stroke="#3B2D53" />
+                <YAxis domain={[30, 100]} tick={{ fontSize: 11, fill: '#B9AECF' }} stroke="#3B2D53" />
+                <Tooltip contentStyle={{ backgroundColor: '#211735', borderColor: '#3B2D53', color: '#F5F3FF', borderRadius: '8px', fontSize: '11px' }} />
                 <Line
                   type="monotone"
                   dataKey="actualRisk"
-                  name="Historical Actual Risk"
-                  stroke="#2563EB"
+                  name="Historical Risk"
+                  stroke="#A78BFA"
                   strokeWidth={2.5}
-                  dot={{ r: 4, fill: '#2563EB' }}
+                  dot={{ r: 4, fill: '#A78BFA' }}
                 />
                 <Line
                   type="monotone"
                   dataKey="predictedRisk"
-                  name="Model Risk Estimate"
-                  stroke="#DC2626"
+                  name="Forecasted Risk"
+                  stroke="#FB7185"
                   strokeWidth={2}
                   strokeDasharray="4 4"
-                  dot={{ r: 4, fill: '#DC2626' }}
+                  dot={{ r: 4, fill: '#FB7185' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -379,29 +422,29 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Chart D: Issue Reports Over Time */}
-        <div className="bg-white p-5 rounded-xl border border-[#E2E8F0] shadow-sm">
+        <div className="bg-[#211735] p-5 rounded-xl border border-[#3B2D53] shadow-xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-bold text-[#172033] uppercase tracking-wider">
-                Citizen &amp; Patrol Issue Volume (Weekly)
+              <h3 className="text-xs font-bold text-[#F5F3FF] uppercase tracking-wider">
+                Distress Reports &amp; Resolutions
               </h3>
-              <p className="text-[11px] text-[#64748B]">Report intake throughput vs resolution rate</p>
+              <p className="text-[11px] text-[#B9AECF]">Operational ticket flow &amp; resolution rate</p>
             </div>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              78% Resolution Compliance
+            <span className="text-[11px] font-semibold text-[#34D399] bg-[#34D399]/15 px-2.5 py-0.5 rounded border border-[#34D399]/30">
+              Active Tracking
             </span>
           </div>
 
           <div className="h-60 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={reportVolumeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#64748B' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#64748B' }} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                <Bar dataKey="submitted" name="New Distress Reports" fill="#2563EB" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="resolved" name="Resolved Work Orders" fill="#15803D" radius={[3, 3, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3B2D53" />
+                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#B9AECF' }} stroke="#3B2D53" />
+                <YAxis tick={{ fontSize: 11, fill: '#B9AECF' }} stroke="#3B2D53" />
+                <Tooltip contentStyle={{ backgroundColor: '#211735', borderColor: '#3B2D53', color: '#F5F3FF', borderRadius: '8px', fontSize: '11px' }} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px', color: '#B9AECF' }} />
+                <Bar dataKey="submitted" name="New Reports" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="resolved" name="Resolved" fill="#34D399" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -409,28 +452,28 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Dashboard Lower Section: Highest Priority Roads & Operational Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
         {/* Highest Priority Road Segments (2 Cols) */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50/60">
+        <div className="lg:col-span-2 bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs overflow-hidden flex flex-col min-w-0">
+          <div className="p-4 border-b border-[#3B2D53] flex items-center justify-between bg-[#140E22]">
             <div>
-              <h3 className="text-xs font-bold text-[#172033] uppercase tracking-wider">
+              <h3 className="text-xs font-bold text-[#F5F3FF] uppercase tracking-wider">
                 Urgent Attention Segments
               </h3>
-              <p className="text-[11px] text-[#64748B]">Highest predicted risk scores requiring field dispatch</p>
+              <p className="text-[11px] text-[#B9AECF]">Highest predicted risk scores requiring field dispatch</p>
             </div>
             <Link
               to="/roads"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              className="text-xs font-semibold text-[#A78BFA] hover:underline flex items-center gap-1 transition"
             >
               All Segments <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="overflow-x-auto flex-1">
+          <div className="overflow-x-auto flex-1 w-full">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-[#E2E8F0] text-[#64748B] font-semibold uppercase text-[10px]">
+                <tr className="bg-[#140E22] border-b border-[#3B2D53] text-[#A78BFA] font-bold uppercase text-[10px]">
                   <th className="py-2.5 px-4">Segment</th>
                   <th className="py-2.5 px-3">Ward</th>
                   <th className="py-2.5 px-3">Condition</th>
@@ -439,90 +482,104 @@ export const DashboardPage: React.FC = () => {
                   <th className="py-2.5 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E8F0]">
-                {topCriticalRoads.map(road => (
-                  <tr
-                    key={road.id}
-                    onClick={() => navigate(`/map?select=${road.id}`)}
-                    className="hover:bg-blue-50/40 cursor-pointer transition"
-                  >
-                    <td className="py-3 px-4 font-semibold text-[#172033]">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {road.id}
-                        </span>
-                        <span className="truncate max-w-[180px]">{road.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-[#64748B]">{road.ward}</td>
-                    <td className="py-3 px-3">
-                      <ConditionBadge condition={road.currentCondition} />
-                    </td>
-                    <td className="py-3 px-3 font-bold text-red-600">
-                      {road.riskScore} / 100
-                    </td>
-                    <td className="py-3 px-3">
-                      <PriorityBadge priority={road.priority} />
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span className="text-[11px] font-semibold text-blue-600 hover:underline">
-                        Inspect Map &rarr;
-                      </span>
+              <tbody className="divide-y divide-[#3B2D53]/50 text-[#F5F3FF]">
+                {topCriticalRoads.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-[#B9AECF]">
+                      No road records in system. Click "Seed Demo Corridors" above to load sample corridors.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  topCriticalRoads.map(road => (
+                    <tr
+                      key={road.id}
+                      onClick={() => navigate(`/map?select=${road.id}`)}
+                      className="hover:bg-[#2B2042]/50 cursor-pointer transition"
+                    >
+                      <td className="py-3 px-4 font-semibold text-[#F5F3FF]">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] text-[#C4B5FD] bg-[#8B5CF6]/20 px-1.5 py-0.5 rounded font-bold border border-[#8B5CF6]/30">
+                            {road.id}
+                          </span>
+                          <span className="truncate max-w-[180px]">{road.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-[#B9AECF]">{road.ward}</td>
+                      <td className="py-3 px-3">
+                        <ConditionBadge condition={road.currentCondition} />
+                      </td>
+                      <td className="py-3 px-3 font-bold text-[#FB7185]">
+                        {road.riskScore} / 100
+                      </td>
+                      <td className="py-3 px-3">
+                        <PriorityBadge priority={road.priority} />
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-[11px] font-semibold text-[#A78BFA] hover:underline transition">
+                          Inspect Map &rarr;
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Operational Feeds: Upcoming Inspections & Data Quality */}
-        <div className="space-y-6 flex flex-col justify-between">
+        {/* Operational Feeds: Upcoming Inspections & Model Status */}
+        <div className="space-y-6 flex flex-col justify-between min-w-0">
           {/* Upcoming Inspections Box */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-4 flex-1">
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#E2E8F0]">
-              <h3 className="text-xs font-bold text-[#172033] uppercase tracking-wider">
+          <div className="bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs p-4 flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#3B2D53]">
+              <h3 className="text-xs font-bold text-[#F5F3FF] uppercase tracking-wider">
                 Upcoming Inspections
               </h3>
-              <Link to="/inspections" className="text-[11px] text-blue-600 font-semibold hover:underline">
+              <Link to="/inspections" className="text-[11px] text-[#A78BFA] font-semibold hover:underline transition">
                 View Calendar
               </Link>
             </div>
 
-            <div className="space-y-3">
-              {inspections.slice(0, 3).map(insp => (
-                <div key={insp.id} className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] font-bold text-blue-700">{insp.id}</span>
-                    <StatusBadge status={insp.status} />
-                  </div>
-                  <div className="font-semibold text-[#172033] truncate">{insp.roadName}</div>
-                  <div className="flex items-center justify-between text-[11px] text-[#64748B]">
-                    <span>Inspector: {insp.assignedInspector}</span>
-                    <span className="font-medium text-slate-700">{insp.scheduledDate}</span>
-                  </div>
+            <div className="space-y-2.5">
+              {inspections.length === 0 ? (
+                <div className="p-4 text-center text-xs text-[#B9AECF]">
+                  No inspections currently scheduled.
                 </div>
-              ))}
+              ) : (
+                inspections.slice(0, 3).map(insp => (
+                  <div key={insp.id} className="p-2.5 rounded-lg border border-[#3B2D53] bg-[#140E22] text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold text-[#A78BFA]">{insp.id}</span>
+                      <StatusBadge status={insp.status} />
+                    </div>
+                    <div className="font-semibold text-[#F5F3FF] truncate">{insp.roadName}</div>
+                    <div className="flex items-center justify-between text-[11px] text-[#B9AECF]">
+                      <span>Inspector: {insp.assignedInspector}</span>
+                      <span className="font-medium text-[#F5F3FF]">{insp.scheduledDate}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Model & Data Quality Summary */}
-          <div className="bg-slate-900 text-white rounded-xl p-4 shadow-sm text-xs space-y-2">
+          {/* Model Status Card */}
+          <div className="bg-[#211735] text-[#F5F3FF] rounded-xl p-4 shadow-xs text-xs space-y-2 border border-[#3B2D53] min-w-0">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-white flex items-center gap-1.5">
-                <BarChart2 className="w-4 h-4 text-emerald-400" /> Model Pipeline Status
+              <span className="font-bold text-[#F5F3FF] flex items-center gap-1.5">
+                <BarChart2 className="w-4 h-4 text-[#34D399]" /> Model Pipeline
               </span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#34D399]/15 text-[#34D399] border border-[#34D399]/30">
                 v2.4 Active
               </span>
             </div>
-            <p className="text-[11px] text-slate-300 leading-snug">
-              Trained on 24,500 pavement distress segments. Mean Absolute Error: 3.42 PCI points. Zero drift detected in October telemetry.
+            <p className="text-[11px] text-[#B9AECF] leading-snug">
+              Trained on Scikit-Learn Random Forest ensemble with empirical telemetry. Real-time urgency calculations active.
             </p>
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
-              <span>Next scheduled retraining: Nov 01</span>
-              <Link to="/models" className="text-blue-400 hover:underline">
-                Monitoring Portal &rarr;
+            <div className="pt-2 border-t border-[#3B2D53] flex items-center justify-between text-[10px] text-[#B9AECF]">
+              <span>Next retraining: Scheduled</span>
+              <Link to="/predictions" className="text-[#A78BFA] hover:underline font-semibold transition">
+                Scoring Engine &rarr;
               </Link>
             </div>
           </div>

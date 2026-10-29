@@ -19,14 +19,14 @@ export const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md bg-white p-8 rounded-2xl shadow-xl border border-[#E2E8F0]">
+    <div className="min-h-screen bg-[#F8F9FC] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
         <div className="mb-6">
-          <Link to="/login" className="inline-flex items-center text-xs text-blue-600 hover:underline mb-4 gap-1">
+          <Link to="/login" className="inline-flex items-center text-xs text-[#35063E] font-medium hover:underline mb-4 gap-1">
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
           </Link>
-          <h2 className="text-xl font-bold text-[#172033]">Choose New Password</h2>
-          <p className="text-xs text-[#64748B] mt-1">
+          <h2 className="text-xl font-bold text-slate-900">Choose New Password</h2>
+          <p className="text-xs text-slate-500 mt-1">
             Ensure your password is at least 8 characters with numbers and symbols
           </p>
         </div>
@@ -34,42 +34,42 @@ export const ResetPasswordPage: React.FC = () => {
         {submitted ? (
           <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 space-y-2 text-center">
             <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto" />
-            <h4 className="font-bold">Password Updated Successfully</h4>
-            <p>Redirecting to login portal...</p>
+            <h4 className="font-bold text-slate-900">Password Updated Successfully</h4>
+            <p className="text-slate-600">Redirecting to login portal...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#172033] mb-1">New Password</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">New Password</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#35063E] focus:border-[#35063E] transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#172033] mb-1">Confirm New Password</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Confirm New Password</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#35063E] focus:border-[#35063E] transition"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 px-4 text-xs font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition"
+              className="w-full py-2.5 px-4 text-xs font-semibold rounded-lg text-white bg-[#35063E] hover:bg-[#27042E] shadow-xs transition"
             >
               Update Password
             </button>

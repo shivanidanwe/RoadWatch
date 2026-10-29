@@ -8,17 +8,12 @@ import { ConditionBadge } from '../../components/common/ConditionBadge';
 import { DetailDrawer } from '../../components/common/DetailDrawer';
 import { RoadSegment, RoadCondition, PriorityLevel } from '../../types';
 import {
-  Route,
   PlusCircle,
   MapPin,
-  CalendarCheck,
   Edit,
   Eye,
   Filter,
-  Car,
-  CloudRain,
-  History,
-  AlertTriangle
+  Zap
 } from 'lucide-react';
 
 export const RoadsPage: React.FC = () => {
@@ -106,6 +101,7 @@ export const RoadsPage: React.FC = () => {
     setShowAddModal(false);
     setFormName('');
     setFormRecommendation('');
+    addToast('success', 'Road Registered', 'New corridor added to inventory.');
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -125,6 +121,7 @@ export const RoadsPage: React.FC = () => {
     });
 
     setEditingRoad(null);
+    addToast('success', 'Segment Updated', `Modifications saved for ${editingRoad.id}.`);
   };
 
   const openEditModal = (road: RoadSegment) => {
@@ -143,38 +140,38 @@ export const RoadsPage: React.FC = () => {
   const columns: Column<RoadSegment>[] = [
     {
       key: 'id',
-      header: 'Segment ID',
+      header: 'ID',
       sortable: true,
-      width: '110px',
+      width: '100px',
       render: r => (
-        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+        <span className="font-mono text-xs font-bold text-[#C4B5FD] bg-[#8B5CF6]/20 px-2 py-0.5 rounded border border-[#8B5CF6]/30">
           {r.id}
         </span>
       ),
     },
     {
       key: 'name',
-      header: 'Road Name',
+      header: 'Road Corridor',
       sortable: true,
       render: r => (
         <div>
-          <span className="font-bold text-[#172033] hover:text-blue-600 block">{r.name}</span>
-          <span className="text-[11px] text-[#94A3B8]">{r.roadType} &bull; {r.surfaceType}</span>
+          <span className="font-semibold text-[#F5F3FF] block">{r.name}</span>
+          <span className="text-[11px] text-[#B9AECF]">{r.roadType} &bull; {r.surfaceType}</span>
         </div>
       ),
     },
     {
       key: 'ward',
-      header: 'Area / Ward',
+      header: 'Ward',
       sortable: true,
-      render: r => <span className="text-xs text-[#64748B]">{r.ward}</span>,
+      render: r => <span className="text-xs text-[#B9AECF]">{r.ward}</span>,
     },
     {
       key: 'lengthKm',
       header: 'Length',
       sortable: true,
       align: 'right',
-      render: r => <span className="font-medium text-[#172033]">{r.lengthKm} km</span>,
+      render: r => <span className="font-medium text-[#F5F3FF]">{r.lengthKm} km</span>,
     },
     {
       key: 'currentCondition',
@@ -188,7 +185,8 @@ export const RoadsPage: React.FC = () => {
       sortable: true,
       align: 'center',
       render: r => (
-        <span className={`font-bold ${r.riskScore >= 75 ? 'text-red-600' : r.riskScore >= 50 ? 'text-orange-600' : 'text-blue-700'}`}>
+        <span className={`font-bold flex items-center justify-center gap-1 ${r.riskScore >= 75 ? 'text-[#FB7185]' : r.riskScore >= 50 ? 'text-[#FBBF24]' : 'text-[#A78BFA]'}`}>
+          <Zap className="w-3 h-3" />
           {r.riskScore}
         </span>
       ),
@@ -203,7 +201,7 @@ export const RoadsPage: React.FC = () => {
       key: 'lastInspectionDate',
       header: 'Last Audit',
       sortable: true,
-      render: r => <span className="text-[11px] text-[#64748B]">{r.lastInspectionDate}</span>,
+      render: r => <span className="text-[11px] text-[#B9AECF]">{r.lastInspectionDate}</span>,
     },
     {
       key: 'actions',
@@ -213,24 +211,24 @@ export const RoadsPage: React.FC = () => {
         <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => setSelectedRoad(r)}
-            className="p-1 text-[#64748B] hover:text-blue-600 rounded hover:bg-slate-100 transition"
+            className="p-1 text-[#B9AECF] hover:text-[#A78BFA] rounded hover:bg-[#2B2042] transition"
             title="Inspect full details"
           >
             <Eye className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => openEditModal(r)}
-            className="p-1 text-[#64748B] hover:text-blue-600 rounded hover:bg-slate-100 transition"
+            className="p-1 text-[#B9AECF] hover:text-[#A78BFA] rounded hover:bg-[#2B2042] transition"
             title="Edit road attributes"
           >
             <Edit className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => navigate(`/map?select=${r.id}`)}
-            className="p-1 text-[#64748B] hover:text-blue-600 rounded hover:bg-slate-100 transition"
+            className="p-1 text-[#B9AECF] hover:text-[#A78BFA] rounded hover:bg-[#2B2042] transition"
             title="Locate on Map"
           >
-            <MapPin className="w-3.5 h-3.5 text-blue-600" />
+            <MapPin className="w-3.5 h-3.5 text-[#A78BFA]" />
           </button>
         </div>
       ),
@@ -238,19 +236,19 @@ export const RoadsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <PageHeader
         title="Road Segments Inventory"
-        subtitle="Searchable master catalog of municipal roadway network segments, Pavement Condition Indexes (PCI), and calculated urgency criteria."
+        subtitle="Master catalog of municipal roadway network segments, Pavement Condition Indexes (PCI), and urgency ratings."
         badge={
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-[#172033] border border-slate-200">
-            {filteredData.length} corridors
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#C4B5FD] border border-[#8B5CF6]/30">
+            {filteredData.length} Corridors
           </span>
         }
         actions={
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg shadow-xs transition"
           >
             <PlusCircle className="w-3.5 h-3.5" />
             <span>Add Road Segment</span>
@@ -259,19 +257,19 @@ export const RoadsPage: React.FC = () => {
       />
 
       {/* Multi-filter Bar */}
-      <div className="bg-white p-3.5 rounded-xl border border-[#E2E8F0] shadow-sm flex flex-wrap items-center gap-3 text-xs">
-        <div className="flex items-center gap-1 text-[#64748B] font-semibold">
-          <Filter className="w-3.5 h-3.5 text-blue-600" />
+      <div className="bg-[#211735] p-3.5 rounded-xl border border-[#3B2D53] shadow-xs flex flex-wrap items-center gap-3 text-xs min-w-0 text-[#F5F3FF]">
+        <div className="flex items-center gap-1 text-[#B9AECF] font-semibold">
+          <Filter className="w-3.5 h-3.5 text-[#A78BFA]" />
           <span>Filters:</span>
         </div>
 
         {/* Ward Filter */}
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Ward:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Ward:</span>
           <select
             value={wardFilter}
             onChange={e => setWardFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
             <option value="ALL">All Wards ({wards.length})</option>
             {wards.map(w => (
@@ -283,12 +281,12 @@ export const RoadsPage: React.FC = () => {
         </div>
 
         {/* Condition Filter */}
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Condition:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Condition:</span>
           <select
             value={conditionFilter}
             onChange={e => setConditionFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
             <option value="ALL">All Conditions</option>
             <option value="Good">Good</option>
@@ -299,12 +297,12 @@ export const RoadsPage: React.FC = () => {
         </div>
 
         {/* Priority Filter */}
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Priority:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Priority:</span>
           <select
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
             <option value="ALL">All Priorities</option>
             <option value="Critical">Critical</option>
@@ -321,7 +319,7 @@ export const RoadsPage: React.FC = () => {
               setConditionFilter('ALL');
               setPriorityFilter('ALL');
             }}
-            className="text-xs text-blue-600 hover:underline font-medium ml-auto"
+            className="text-xs text-[#A78BFA] hover:underline font-semibold ml-auto"
           >
             Reset Filters
           </button>
@@ -333,8 +331,8 @@ export const RoadsPage: React.FC = () => {
         columns={columns}
         data={filteredData}
         searchKey={(r: RoadSegment) => `${r.name} ${r.id} ${r.ward} ${r.roadType}`}
-        searchPlaceholder="Search by road name, segment ID, ward, or classification..."
-        exportFileName="roadwatch-road-inventory"
+        searchPlaceholder="Search road by name, ID, ward, or classification..."
+        exportFileName="roadwatch-inventory"
         selectable={true}
         onRowClick={r => setSelectedRoad(r)}
       />
@@ -353,7 +351,7 @@ export const RoadsPage: React.FC = () => {
                   navigate(`/map?select=${selectedRoad.id}`);
                 }
               }}
-              className="px-3.5 py-1.5 bg-blue-600 text-white font-semibold rounded-lg text-xs hover:bg-blue-700 shadow-xs flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-[#8B5CF6] text-white font-semibold rounded-lg text-xs hover:bg-[#7C3AED] shadow-xs flex items-center gap-1.5 transition"
             >
               <MapPin className="w-3.5 h-3.5" />
               <span>Locate on Map</span>
@@ -365,7 +363,7 @@ export const RoadsPage: React.FC = () => {
                   setSelectedRoad(null);
                 }
               }}
-              className="px-3.5 py-1.5 bg-white border border-[#E2E8F0] text-[#172033] font-semibold rounded-lg text-xs hover:bg-slate-50"
+              className="px-3.5 py-1.5 bg-[#2B2042] border border-[#3B2D53] text-[#F5F3FF] font-semibold rounded-lg text-xs hover:bg-[#3B2D53] transition"
             >
               Edit Segment
             </button>
@@ -373,61 +371,61 @@ export const RoadsPage: React.FC = () => {
         }
       >
         {selectedRoad && (
-          <div className="space-y-5 text-xs">
+          <div className="space-y-4 text-xs text-[#F5F3FF]">
             <div className="flex items-center gap-2">
               <ConditionBadge condition={selectedRoad.currentCondition} />
               <PriorityBadge priority={selectedRoad.priority} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0]">
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#140E22] border border-[#3B2D53]">
               <div>
-                <span className="text-[#64748B] text-[10px] uppercase font-bold">Length</span>
-                <p className="font-bold text-[#172033] text-sm">{selectedRoad.lengthKm} km</p>
+                <span className="text-[#B9AECF] text-[10px] uppercase font-bold">Length</span>
+                <p className="font-bold text-[#F5F3FF] text-sm">{selectedRoad.lengthKm} km</p>
               </div>
               <div>
-                <span className="text-[#64748B] text-[10px] uppercase font-bold">Road Classification</span>
-                <p className="font-bold text-[#172033] text-sm">{selectedRoad.roadType}</p>
+                <span className="text-[#B9AECF] text-[10px] uppercase font-bold">Classification</span>
+                <p className="font-bold text-[#F5F3FF] text-sm">{selectedRoad.roadType}</p>
               </div>
               <div>
-                <span className="text-[#64748B] text-[10px] uppercase font-bold">Surface Type</span>
-                <p className="font-bold text-[#172033] text-sm">{selectedRoad.surfaceType}</p>
+                <span className="text-[#B9AECF] text-[10px] uppercase font-bold">Surface Type</span>
+                <p className="font-bold text-[#F5F3FF] text-sm">{selectedRoad.surfaceType}</p>
               </div>
               <div>
-                <span className="text-[#64748B] text-[10px] uppercase font-bold">Pavement Condition (PCI)</span>
-                <p className="font-bold text-[#172033] text-sm">{selectedRoad.pciScore} / 100</p>
+                <span className="text-[#B9AECF] text-[10px] uppercase font-bold">Condition (PCI)</span>
+                <p className="font-bold text-[#F5F3FF] text-sm">{selectedRoad.pciScore} / 100</p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-blue-900">Recommended Maintenance Intervention</span>
-              <p className="font-bold text-blue-950 text-xs">{selectedRoad.recommendedAction}</p>
-              <p className="text-blue-800 text-[11px] leading-relaxed">{selectedRoad.recommendationReason}</p>
+            <div className="p-3.5 rounded-xl bg-[#140E22] border border-[#8B5CF6]/30 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#A78BFA]">Recommended Maintenance</span>
+              <p className="font-bold text-[#F5F3FF] text-xs">{selectedRoad.recommendedAction}</p>
+              <p className="text-[#B9AECF] text-[11px] leading-relaxed">{selectedRoad.recommendationReason}</p>
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-bold text-[#172033] uppercase text-[10px] tracking-wider text-[#64748B]">
-                Environmental &amp; Usage Telemetry
+              <h4 className="font-bold uppercase text-[10px] tracking-wider text-[#B9AECF]">
+                Telemetry &amp; Usage
               </h4>
-              <div className="divide-y divide-slate-100 border border-[#E2E8F0] rounded-xl overflow-hidden">
+              <div className="divide-y divide-[#3B2D53] border border-[#3B2D53] rounded-xl overflow-hidden bg-[#140E22]">
                 <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">Traffic Intensity:</span>
-                  <strong className="text-[#172033]">{selectedRoad.trafficIntensity}</strong>
+                  <span className="text-[#B9AECF]">Traffic Load:</span>
+                  <strong className="text-[#F5F3FF]">{selectedRoad.trafficIntensity}</strong>
                 </div>
                 <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">Monsoon Runoff Exposure:</span>
-                  <strong className="text-[#172033]">{selectedRoad.weatherExposure}</strong>
+                  <span className="text-[#B9AECF]">Weather Exposure:</span>
+                  <strong className="text-[#F5F3FF]">{selectedRoad.weatherExposure}</strong>
                 </div>
                 <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">Last Comprehensive Inspection:</span>
-                  <strong className="text-[#172033]">{selectedRoad.lastInspectionDate}</strong>
+                  <span className="text-[#B9AECF]">Last Inspection:</span>
+                  <strong className="text-[#F5F3FF]">{selectedRoad.lastInspectionDate}</strong>
                 </div>
                 <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">Last Full Overlay / Seal:</span>
-                  <strong className="text-[#172033]">{selectedRoad.lastMaintenanceDate}</strong>
+                  <span className="text-[#B9AECF]">Last Overlay / Seal:</span>
+                  <strong className="text-[#F5F3FF]">{selectedRoad.lastMaintenanceDate}</strong>
                 </div>
                 <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">Pending Citizen Reports:</span>
-                  <strong className="text-amber-700">{selectedRoad.openReportsCount} issues</strong>
+                  <span className="text-[#B9AECF]">Open Reports:</span>
+                  <strong className="text-[#FBBF24] font-semibold">{selectedRoad.openReportsCount} issues</strong>
                 </div>
               </div>
             </div>
@@ -437,18 +435,18 @@ export const RoadsPage: React.FC = () => {
 
       {/* Add / Edit Road Segment Modal */}
       {(showAddModal || editingRoad) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] max-w-xl w-full p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-              <h3 className="text-sm font-bold text-[#172033]">
-                {editingRoad ? `Edit Road Segment: ${editingRoad.id}` : 'Register New Road Segment'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[#211735] rounded-xl shadow-2xl border border-[#3B2D53] max-w-xl w-full p-6 text-xs space-y-4 text-[#F5F3FF]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#3B2D53]">
+              <h3 className="text-sm font-bold text-[#F5F3FF]">
+                {editingRoad ? `Edit Road: ${editingRoad.id}` : 'Register New Road Segment'}
               </h3>
               <button
                 onClick={() => {
                   setShowAddModal(false);
                   setEditingRoad(null);
                 }}
-                className="text-[#94A3B8] hover:text-[#172033]"
+                className="text-[#B9AECF] hover:text-[#F5F3FF]"
               >
                 ✕
               </button>
@@ -456,55 +454,54 @@ export const RoadsPage: React.FC = () => {
 
             <form onSubmit={editingRoad ? handleEditSubmit : handleCreateSubmit} className="space-y-3.5">
               <div>
-                <label className="block font-semibold text-[#172033] mb-1">Road Name / Corridor Title</label>
+                <label className="block font-semibold text-[#F5F3FF] mb-1">Road Corridor Name</label>
                 <input
                   type="text"
                   required
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
                   placeholder="e.g. Outer Ring Road Phase 2"
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Municipal Ward</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Municipal Ward</label>
                   <select
                     value={formWard}
                     onChange={e => setFormWard(e.target.value)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Ward 1 - Downtown Core">Ward 1 - Downtown Core</option>
+                    <option value="Ward 2 - Uptown">Ward 2 - Uptown</option>
                     <option value="Ward 3 - Central Zone">Ward 3 - Central Zone</option>
                     <option value="Ward 4 - North Zone">Ward 4 - North Zone</option>
-                    <option value="Ward 7 - West Zone">Ward 7 - West Zone</option>
+                    <option value="Ward 6 - Silicon Corridor">Ward 6 - Silicon Corridor</option>
                     <option value="Ward 8 - East District">Ward 8 - East District</option>
-                    <option value="Ward 9 - Tech Corridor">Ward 9 - Tech Corridor</option>
-                    <option value="Ward 10 - South East">Ward 10 - South East</option>
                     <option value="Ward 11 - South Hub">Ward 11 - South Hub</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Length (km)</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Length (km)</label>
                   <input
                     type="number"
                     step="0.1"
                     required
                     value={formLength}
                     onChange={e => setFormLength(e.target.value)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Road Type</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Road Type</label>
                   <select
                     value={formRoadType}
                     onChange={e => setFormRoadType(e.target.value as any)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Arterial">Arterial Highway</option>
                     <option value="Sub-Arterial">Sub-Arterial Avenue</option>
@@ -513,27 +510,27 @@ export const RoadsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Surface Type</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Surface Type</label>
                   <select
                     value={formSurface}
                     onChange={e => setFormSurface(e.target.value as any)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Asphalt">Asphalt Concrete</option>
                     <option value="Concrete">Rigid Concrete</option>
                     <option value="Bituminous Macadam">Bituminous Macadam</option>
-                    <option value="Paver Blocks">Interlocking Pavers</option>
+                    <option value="Paver Blocks">Paver Blocks</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Current Condition</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Condition</label>
                   <select
                     value={formCondition}
                     onChange={e => setFormCondition(e.target.value as RoadCondition)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Good">Good</option>
                     <option value="Fair">Fair</option>
@@ -542,11 +539,11 @@ export const RoadsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Traffic Volume</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Traffic Volume</label>
                   <select
                     value={formTraffic}
                     onChange={e => setFormTraffic(e.target.value as any)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Very Low">Very Low</option>
                     <option value="Moderate">Moderate</option>
@@ -555,11 +552,11 @@ export const RoadsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Weather Exposure</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Weather Risk</label>
                   <select
                     value={formWeather}
                     onChange={e => setFormWeather(e.target.value as any)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Low">Low</option>
                     <option value="Moderate">Moderate</option>
@@ -570,32 +567,32 @@ export const RoadsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-[#172033] mb-1">Recommended Action</label>
+                <label className="block font-semibold text-[#F5F3FF] mb-1">Recommended Action</label>
                 <input
                   type="text"
                   value={formRecommendation}
                   onChange={e => setFormRecommendation(e.target.value)}
-                  placeholder="e.g. Mill and replace 40mm wearing course with PMB-40"
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  placeholder="e.g. Surface overlay and ditch maintenance"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#3B2D53]">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
                     setEditingRoad(null);
                   }}
-                  className="px-3.5 py-1.5 border border-[#E2E8F0] rounded-lg font-medium text-[#64748B] hover:bg-slate-50"
+                  className="px-3.5 py-1.5 border border-[#3B2D53] rounded-lg font-medium text-[#B9AECF] hover:bg-[#2B2042] transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs"
+                  className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold rounded-lg shadow-xs transition"
                 >
-                  {editingRoad ? 'Save Changes' : 'Register Road Segment'}
+                  {editingRoad ? 'Save Changes' : 'Register Road'}
                 </button>
               </div>
             </form>

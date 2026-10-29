@@ -1,27 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ConfirmationDialog } from '../../components/common/ConfirmationDialog';
 import { SystemSettings } from '../../types';
+import { apiService } from '../../services/api';
 import {
   Sliders,
   Save,
   RotateCcw,
-  Shield,
-  Bell,
-  Map,
-  Moon,
-  Sun,
-  User,
-  AlertTriangle,
   Scale
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const { settings, updateSettings, resetAllData, currentUser, addToast } = useApp();
+  const { settings, updateSettings, resetToEmpty, seedDemoData, currentUser, addToast } = useApp();
 
   const [formData, setFormData] = useState<SystemSettings>({ ...settings });
   const [showResetModal, setShowResetModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    // Fetch backend scoring config
+    const loadBackendConfig = async () => {
+      try {
+        const config = await apiService.getScoringConfig();
+        if (config && config.weights) {
+          setFormData(prev => ({
+            ...prev,
+            factorWeights: {
+              damageSeverity: Math.round((config.weights.damage_severity ?? 0.3) * 100),
+              trafficIntensity: Math.round((config.weights.traffic_intensity ?? 0.15) * 100),
+              weatherExposure: Math.round((config.weights.weather_exposure ?? 0.15) * 100),
+              repairHistory: Math.round(((config.weights.time_since_last_repair ?? 0.1) + (config.weights.historical_deterioration ?? 0.1) + (config.weights.recent_report_frequency ?? 0.2)) * 100),
+            }
+          }));
+        }
+      } catch (e) {
+        // use default settings
+      }
+    };
+    loadBackendConfig();
+  }, []);
 
   // Calculate sum of weights
   const totalWeight =
@@ -30,7 +48,7 @@ export const SettingsPage: React.FC = () => {
     Number(formData.factorWeights.weatherExposure) +
     Number(formData.factorWeights.repairHistory);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (totalWeight !== 100) {
       addToast(
@@ -40,20 +58,40 @@ export const SettingsPage: React.FC = () => {
       );
       return;
     }
+    setIsSaving(true);
+    try {
+      await apiService.updateScoringConfig({
+        weights: {
+          damage_severity: formData.factorWeights.damageSeverity / 100,
+          traffic_intensity: formData.factorWeights.trafficIntensity / 100,
+          weather_exposure: formData.factorWeights.weatherExposure / 100,
+          time_since_last_repair: (formData.factorWeights.repairHistory / 100) * 0.4,
+          historical_deterioration: (formData.factorWeights.repairHistory / 100) * 0.3,
+          recent_report_frequency: (formData.factorWeights.repairHistory / 100) * 0.3,
+        },
+        changed_by: currentUser?.name || 'Administrator',
+        reason: 'Updated through Municipal Scoring Configuration UI'
+      });
+    } catch (e) {
+      console.warn('Backend scoring config sync notice:', e);
+    }
     updateSettings(formData);
+    setIsSaving(false);
+    addToast('success', 'Configuration Saved', 'Scoring weights and threshold parameters updated.');
   };
 
-  const handleResetConfirm = () => {
-    resetAllData();
+  const handleResetConfirm = async () => {
+    await resetToEmpty();
+    addToast('info', 'Database Reset', 'Cleared all demonstration and active records.');
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0">
       <PageHeader
         title="Platform &amp; Scoring Configuration"
         subtitle="Calibrate risk threshold bands, feature importance scoring weights, notification dispatch rules, and municipal preferences."
         badge={
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-[#172033] border border-slate-200">
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#C4B5FD] border border-[#8B5CF6]/30">
             System Administration
           </span>
         }
@@ -61,43 +99,50 @@ export const SettingsPage: React.FC = () => {
           <>
             <button
               onClick={() => setShowResetModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#FB7185] bg-[#FB7185]/15 border border-[#FB7185]/40 rounded-lg hover:bg-[#FB7185]/25 transition shadow-xs"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Demo State</span>
+              <span>Clear / Reset Data</span>
+            </button>
+            <button
+              onClick={seedDemoData}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#F5F3FF] bg-[#2B2042] border border-[#3B2D53] rounded-lg hover:bg-[#3B2D53] transition shadow-xs"
+            >
+              <span>Seed 3 Demo Roads</span>
             </button>
             <button
               onClick={handleSave}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition"
+              disabled={isSaving}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg shadow-xs transition disabled:opacity-50"
             >
               <Save className="w-3.5 h-3.5" />
-              <span>Save Configuration</span>
+              <span>{isSaving ? 'Saving...' : 'Save Configuration'}</span>
             </button>
           </>
         }
       />
 
-      <form onSubmit={handleSave} className="space-y-6 text-xs">
+      <form onSubmit={handleSave} className="space-y-6 text-xs w-full min-w-0 text-[#F5F3FF]">
         {/* Risk Thresholds Band Configuration */}
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+        <div className="bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs p-5 sm:p-6 space-y-4 min-w-0 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#3B2D53] gap-2">
             <div>
-              <h3 className="font-bold text-sm text-[#172033] flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-600" />
+              <h3 className="font-bold text-sm text-[#F5F3FF] flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[#A78BFA]" />
                 Urgency Priority Threshold Bands (0–100 Scale)
               </h3>
-              <p className="text-[#64748B] text-[11px] mt-0.5">
+              <p className="text-[#B9AECF] text-xs mt-0.5">
                 Defines the numerical boundaries that classify calculated road risks into Low, Medium, High, or Critical.
               </p>
             </div>
-            <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+            <span className="text-[10px] text-[#A78BFA] font-bold bg-[#8B5CF6]/15 px-2.5 py-1 rounded-md border border-[#8B5CF6]/30 self-start sm:self-auto">
               Configurable Engine
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2">
-              <span className="font-bold text-emerald-800 uppercase text-[10px]">Low Priority Max</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
+            <div className="p-4 rounded-xl border border-[#34D399]/40 bg-[#34D399]/10 space-y-2 min-w-0">
+              <span className="font-bold text-[#34D399] uppercase text-[10px] tracking-wide">Low Priority Max</span>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -110,15 +155,15 @@ export const SettingsPage: React.FC = () => {
                       riskThresholds: { ...formData.riskThresholds, lowMax: Number(e.target.value) },
                     })
                   }
-                  className="w-20 p-1.5 border border-emerald-300 rounded bg-white font-bold text-xs"
+                  className="w-20 p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-bold text-xs focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="text-emerald-700 font-mono text-[11px]">Score 0 &ndash; {formData.riskThresholds.lowMax}</span>
+                <span className="text-[#34D399] font-mono text-xs">Score 0 &ndash; {formData.riskThresholds.lowMax}</span>
               </div>
-              <p className="text-[10px] text-emerald-900 leading-snug">Routine scheduled maintenance cycles</p>
+              <p className="text-[11px] text-[#B9AECF] leading-snug">Routine scheduled maintenance cycles</p>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 space-y-2">
-              <span className="font-bold text-amber-800 uppercase text-[10px]">Medium Priority Max</span>
+            <div className="p-4 rounded-xl border border-[#60A5FA]/40 bg-[#60A5FA]/10 space-y-2 min-w-0">
+              <span className="font-bold text-[#60A5FA] uppercase text-[10px] tracking-wide">Medium Priority Max</span>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -131,15 +176,15 @@ export const SettingsPage: React.FC = () => {
                       riskThresholds: { ...formData.riskThresholds, mediumMax: Number(e.target.value) },
                     })
                   }
-                  className="w-20 p-1.5 border border-amber-300 rounded bg-white font-bold text-xs"
+                  className="w-20 p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-bold text-xs focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="text-amber-700 font-mono text-[11px]">Score {formData.riskThresholds.lowMax + 1} &ndash; {formData.riskThresholds.mediumMax}</span>
+                <span className="text-[#60A5FA] font-mono text-xs">Score {formData.riskThresholds.lowMax + 1} &ndash; {formData.riskThresholds.mediumMax}</span>
               </div>
-              <p className="text-[10px] text-amber-900 leading-snug">Slurry seals and preventive surface crack fills</p>
+              <p className="text-[11px] text-[#B9AECF] leading-snug">Slurry seals and preventive surface crack fills</p>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-orange-200 bg-orange-50/40 space-y-2">
-              <span className="font-bold text-orange-800 uppercase text-[10px]">High Priority Max</span>
+            <div className="p-4 rounded-xl border border-[#FBBF24]/40 bg-[#FBBF24]/10 space-y-2 min-w-0">
+              <span className="font-bold text-[#FBBF24] uppercase text-[10px] tracking-wide">High Priority Max</span>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -152,15 +197,15 @@ export const SettingsPage: React.FC = () => {
                       riskThresholds: { ...formData.riskThresholds, highMax: Number(e.target.value) },
                     })
                   }
-                  className="w-20 p-1.5 border border-orange-300 rounded bg-white font-bold text-xs"
+                  className="w-20 p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-bold text-xs focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="text-orange-700 font-mono text-[11px]">Score {formData.riskThresholds.mediumMax + 1} &ndash; {formData.riskThresholds.highMax}</span>
+                <span className="text-[#FBBF24] font-mono text-xs">Score {formData.riskThresholds.mediumMax + 1} &ndash; {formData.riskThresholds.highMax}</span>
               </div>
-              <p className="text-[10px] text-orange-900 leading-snug">Structural overlay planning within 90 days</p>
+              <p className="text-[11px] text-[#B9AECF] leading-snug">Structural overlay planning within 90 days</p>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-red-200 bg-red-50/40 space-y-2">
-              <span className="font-bold text-red-800 uppercase text-[10px]">Critical Priority Min</span>
+            <div className="p-4 rounded-xl border border-[#FB7185]/40 bg-[#FB7185]/10 space-y-2 min-w-0">
+              <span className="font-bold text-[#FB7185] uppercase text-[10px] tracking-wide">Critical Priority Min</span>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -173,41 +218,41 @@ export const SettingsPage: React.FC = () => {
                       riskThresholds: { ...formData.riskThresholds, criticalMin: Number(e.target.value) },
                     })
                   }
-                  className="w-20 p-1.5 border border-red-300 rounded bg-white font-bold text-xs"
+                  className="w-20 p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-bold text-xs focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="text-red-700 font-mono text-[11px]">Score {formData.riskThresholds.criticalMin} &ndash; 100</span>
+                <span className="text-[#FB7185] font-mono text-xs">Score {formData.riskThresholds.criticalMin} &ndash; 100</span>
               </div>
-              <p className="text-[10px] text-red-900 leading-snug">Immediate emergency engineering intervention</p>
+              <p className="text-[11px] text-[#B9AECF] leading-snug">Immediate emergency engineering intervention</p>
             </div>
           </div>
         </div>
 
         {/* Priority Calculation Weights */}
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+        <div className="bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs p-5 sm:p-6 space-y-4 min-w-0 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#3B2D53] gap-2">
             <div>
-              <h3 className="font-bold text-sm text-[#172033] flex items-center gap-2">
-                <Scale className="w-4 h-4 text-blue-600" />
+              <h3 className="font-bold text-sm text-[#F5F3FF] flex items-center gap-2">
+                <Scale className="w-4 h-4 text-[#A78BFA]" />
                 Feature Importance Scoring Weights (% of Composite Risk)
               </h3>
-              <p className="text-[#64748B] text-[11px] mt-0.5">
+              <p className="text-[#B9AECF] text-xs mt-0.5">
                 Relative weighting factors contributing to the final predictive vulnerability index. Must sum to 100%.
               </p>
             </div>
             <span
-              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+              className={`text-xs font-bold px-2.5 py-1 rounded-full self-start sm:self-auto ${
                 totalWeight === 100
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  ? 'bg-[#34D399]/15 text-[#34D399] border border-[#34D399]/30'
+                  : 'bg-[#FB7185]/15 text-[#FB7185] border border-[#FB7185]/30'
               }`}
             >
               Sum: {totalWeight}% {totalWeight === 100 ? '✓ Balanced' : '⚠️ Must equal 100%'}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block font-semibold text-[#172033] mb-1">Damage Severity &amp; Cracks</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
+            <div className="min-w-0">
+              <label className="block font-semibold text-[#B9AECF] mb-1 truncate">Damage Severity &amp; Cracks</label>
               <div className="flex items-center gap-1.5">
                 <input
                   type="number"
@@ -220,14 +265,14 @@ export const SettingsPage: React.FC = () => {
                       factorWeights: { ...formData.factorWeights, damageSeverity: Number(e.target.value) },
                     })
                   }
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-semibold focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="font-bold text-[#64748B]">%</span>
+                <span className="font-bold text-[#B9AECF]">%</span>
               </div>
             </div>
 
-            <div>
-              <label className="block font-semibold text-[#172033] mb-1">Traffic Volume &amp; Axle Load</label>
+            <div className="min-w-0">
+              <label className="block font-semibold text-[#B9AECF] mb-1 truncate">Traffic Volume &amp; Axle Load</label>
               <div className="flex items-center gap-1.5">
                 <input
                   type="number"
@@ -240,14 +285,14 @@ export const SettingsPage: React.FC = () => {
                       factorWeights: { ...formData.factorWeights, trafficIntensity: Number(e.target.value) },
                     })
                   }
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-semibold focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="font-bold text-[#64748B]">%</span>
+                <span className="font-bold text-[#B9AECF]">%</span>
               </div>
             </div>
 
-            <div>
-              <label className="block font-semibold text-[#172033] mb-1">Weather &amp; Monsoon Exposure</label>
+            <div className="min-w-0">
+              <label className="block font-semibold text-[#B9AECF] mb-1 truncate">Weather &amp; Monsoon Exposure</label>
               <div className="flex items-center gap-1.5">
                 <input
                   type="number"
@@ -260,14 +305,14 @@ export const SettingsPage: React.FC = () => {
                       factorWeights: { ...formData.factorWeights, weatherExposure: Number(e.target.value) },
                     })
                   }
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-semibold focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="font-bold text-[#64748B]">%</span>
+                <span className="font-bold text-[#B9AECF]">%</span>
               </div>
             </div>
 
-            <div>
-              <label className="block font-semibold text-[#172033] mb-1">Repair Age &amp; History Gap</label>
+            <div className="min-w-0">
+              <label className="block font-semibold text-[#B9AECF] mb-1 truncate">Repair Age &amp; History Gap</label>
               <div className="flex items-center gap-1.5">
                 <input
                   type="number"
@@ -280,32 +325,32 @@ export const SettingsPage: React.FC = () => {
                       factorWeights: { ...formData.factorWeights, repairHistory: Number(e.target.value) },
                     })
                   }
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] font-semibold focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA]"
                 />
-                <span className="font-bold text-[#64748B]">%</span>
+                <span className="font-bold text-[#B9AECF]">%</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* General Preferences & Map Settings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
           {/* General & Environment */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 space-y-4">
-            <h3 className="font-bold text-sm text-[#172033] pb-2 border-b border-[#E2E8F0]">
+          <div className="bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs p-5 space-y-4 min-w-0 overflow-hidden">
+            <h3 className="font-bold text-sm text-[#F5F3FF] pb-2 border-b border-[#3B2D53]">
               Operational Preferences
             </h3>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-semibold text-[#172033] block">Telemetry Auto-Refresh Cadence</span>
-                  <span className="text-[11px] text-[#64748B]">Background poll interval for loop sensors &amp; reports</span>
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="font-semibold text-[#F5F3FF] block truncate">Telemetry Auto-Refresh</span>
+                  <span className="text-xs text-[#B9AECF]">Background poll interval for sensors &amp; reports</span>
                 </div>
                 <select
                   value={formData.refreshIntervalSeconds}
                   onChange={e => setFormData({ ...formData, refreshIntervalSeconds: Number(e.target.value) })}
-                  className="p-1.5 border border-[#E2E8F0] rounded-lg bg-white"
+                  className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] text-xs focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA] shrink-0"
                 >
                   <option value={15}>15 Seconds</option>
                   <option value={30}>30 Seconds</option>
@@ -314,45 +359,35 @@ export const SettingsPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                <div>
-                  <span className="font-semibold text-[#172033] block">Default Geospatial Basemap</span>
-                  <span className="text-[11px] text-[#64748B]">Layer presentation for Live Road Map workspace</span>
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#3B2D53]">
+                <div className="min-w-0">
+                  <span className="font-semibold text-[#F5F3FF] block truncate">Default Basemap</span>
+                  <span className="text-xs text-[#B9AECF]">MapLibre layer styling</span>
                 </div>
                 <select
                   value={formData.mapDefaultStyle}
                   onChange={e => setFormData({ ...formData, mapDefaultStyle: e.target.value as any })}
-                  className="p-1.5 border border-[#E2E8F0] rounded-lg bg-white"
+                  className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] text-xs focus:ring-1 focus:ring-[#8B5CF6] focus:border-[#A78BFA] shrink-0"
                 >
                   <option value="standard">Standard Carto Vector</option>
                   <option value="satellite">Satellite Imagery</option>
                   <option value="dark">High-Contrast Dark</option>
                 </select>
               </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                <div>
-                  <span className="font-semibold text-[#172033] block">Demo Mode Simulation</span>
-                  <span className="text-[11px] text-[#64748B]">Operates safely with localized offline telemetry</span>
-                </div>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                  Active (Safe)
-                </span>
-              </div>
             </div>
           </div>
 
           {/* Notifications */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 space-y-4">
-            <h3 className="font-bold text-sm text-[#172033] pb-2 border-b border-[#E2E8F0]">
+          <div className="bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs p-5 space-y-4 min-w-0 overflow-hidden">
+            <h3 className="font-bold text-sm text-[#F5F3FF] pb-2 border-b border-[#3B2D53]">
               Automated Alert Dispatch
             </h3>
 
-            <div className="space-y-3">
-              <label className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <span className="font-semibold text-[#172033] block">Critical Distress Dispatch</span>
-                  <span className="text-[11px] text-[#64748B]">Instant alerts for potholes &ge; 10cm or flood inundation</span>
+            <div className="space-y-3.5">
+              <label className="flex items-center justify-between cursor-pointer gap-3">
+                <div className="min-w-0">
+                  <span className="font-semibold text-[#F5F3FF] block truncate">Critical Distress Dispatch</span>
+                  <span className="text-xs text-[#B9AECF]">Instant alerts for severe potholes or washouts</span>
                 </div>
                 <input
                   type="checkbox"
@@ -363,14 +398,14 @@ export const SettingsPage: React.FC = () => {
                       notifications: { ...formData.notifications, criticalAlertsEmail: e.target.checked },
                     })
                   }
-                  className="rounded text-blue-600 focus:ring-0 w-4 h-4"
+                  className="rounded text-[#8B5CF6] focus:ring-[#8B5CF6] w-4 h-4 border-[#3B2D53] bg-[#140E22] shrink-0"
                 />
               </label>
 
-              <label className="flex items-center justify-between cursor-pointer pt-2 border-t border-slate-100">
-                <div>
-                  <span className="font-semibold text-[#172033] block">Weekly Executive Digest</span>
-                  <span className="text-[11px] text-[#64748B]">Consolidated PCI degradation briefing for leadership</span>
+              <label className="flex items-center justify-between cursor-pointer gap-3 pt-3 border-t border-[#3B2D53]">
+                <div className="min-w-0">
+                  <span className="font-semibold text-[#F5F3FF] block truncate">Weekly Executive Digest</span>
+                  <span className="text-xs text-[#B9AECF]">Consolidated condition briefing for leadership</span>
                 </div>
                 <input
                   type="checkbox"
@@ -381,14 +416,14 @@ export const SettingsPage: React.FC = () => {
                       notifications: { ...formData.notifications, weeklyDigest: e.target.checked },
                     })
                   }
-                  className="rounded text-blue-600 focus:ring-0 w-4 h-4"
+                  className="rounded text-[#8B5CF6] focus:ring-[#8B5CF6] w-4 h-4 border-[#3B2D53] bg-[#140E22] shrink-0"
                 />
               </label>
 
-              <label className="flex items-center justify-between cursor-pointer pt-2 border-t border-slate-100">
-                <div>
-                  <span className="font-semibold text-[#172033] block">Model Drift Notifications</span>
-                  <span className="text-[11px] text-[#64748B]">Alert data team when feature divergence exceeds 5%</span>
+              <label className="flex items-center justify-between cursor-pointer gap-3 pt-3 border-t border-[#3B2D53]">
+                <div className="min-w-0">
+                  <span className="font-semibold text-[#F5F3FF] block truncate">Model Drift Notifications</span>
+                  <span className="text-xs text-[#B9AECF]">Alert data team when feature divergence exceeds 5%</span>
                 </div>
                 <input
                   type="checkbox"
@@ -399,7 +434,7 @@ export const SettingsPage: React.FC = () => {
                       notifications: { ...formData.notifications, modelDriftAlerts: e.target.checked },
                     })
                   }
-                  className="rounded text-blue-600 focus:ring-0 w-4 h-4"
+                  className="rounded text-[#8B5CF6] focus:ring-[#8B5CF6] w-4 h-4 border-[#3B2D53] bg-[#140E22] shrink-0"
                 />
               </label>
             </div>
@@ -412,10 +447,10 @@ export const SettingsPage: React.FC = () => {
         isOpen={showResetModal}
         onClose={() => setShowResetModal(false)}
         onConfirm={handleResetConfirm}
-        title="Reset All Demo Data?"
-        message="This will clear your local changes (added reports, updated inspections, created road segments) and restore the initial municipal baseline dataset."
+        title="Reset All Database Records?"
+        message="This will clear all registered roads, reports, inspections, and work orders in the database, resetting the system to an empty state."
         confirmLabel="Reset Everything"
-        cancelLabel="Keep Changes"
+        cancelLabel="Cancel"
         isDestructive={true}
       />
     </div>

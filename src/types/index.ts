@@ -3,26 +3,31 @@ export type PriorityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 export type IssueCategory = 
   | 'Pothole' 
   | 'Surface cracking' 
+  | 'Cracking'
   | 'Waterlogging' 
   | 'Road subsidence' 
   | 'Surface deterioration' 
+  | 'Surface Rutting'
   | 'Edge failure'
+  | 'Edge Damage'
   | 'Other';
 
 export type ReportSeverity = 'Low' | 'Medium' | 'High' | 'Critical';
 export type ReportStatus = 
   | 'Submitted' 
+  | 'Reported'
   | 'Under Review' 
+  | 'In Progress'
   | 'Verified' 
   | 'Inspection Scheduled' 
   | 'Maintenance Planned' 
   | 'Resolved';
 
 export type InspectionStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Reviewed';
-export type InspectionType = 'Routine' | 'Post-Severe-Weather' | 'Citizen Report Verification' | 'Structural Assessment';
+export type InspectionType = 'Routine' | 'Periodic Audit' | 'Post-Severe-Weather' | 'Citizen Report Verification' | 'Structural Assessment';
 
 export type MaintenanceStatus = 'Proposed' | 'Under Review' | 'Approved' | 'Scheduled' | 'In Progress' | 'Completed';
-export type MaintenanceType = 'Pothole Patching' | 'Resurfacing' | 'Full Reconstruction' | 'Drainage Rectification' | 'Crack Sealing';
+export type MaintenanceType = 'Pothole Patching' | 'Patching' | 'Overlay' | 'Resurfacing' | 'Full Reconstruction' | 'Drainage Rectification' | 'Crack Sealing';
 
 export interface RoadSegment {
   id: string; // e.g. "RD-7041"
@@ -54,9 +59,12 @@ export interface IssueReport {
   roadName: string;
   category: IssueCategory;
   severity: ReportSeverity;
-  source: 'Citizen App' | 'Field Officer' | 'Automated Sensor' | 'Municipal Patrol';
+  source: 'Citizen App' | 'Field Officer' | 'Automated Sensor' | 'Municipal Patrol' | 'Patrol Vehicle' | 'Routine Survey';
   reportDate: string;
   status: ReportStatus;
+  priorityScore?: number;
+  priorityLevel?: PriorityLevel;
+  urgencyScore?: number;
   assignedTeam?: string;
   description: string;
   coordinates: [number, number];
@@ -89,7 +97,7 @@ export interface Inspection {
     estimatedPci: number;
     structuralIntegrityScore: number; // 0-100
     damageSpreadPercentage: number;
-    drainageCondition: 'Adequate' | 'Partially Blocked' | 'Severely Compromised';
+    drainageCondition: 'Optimal' | 'Adequate' | 'Partially Blocked' | 'Severely Compromised';
     recommendedActions: string[];
     summaryNotes: string;
     photoUrls?: string[];
@@ -180,13 +188,13 @@ export interface ModelMetric {
   driftStatus: 'Stable' | 'Minor Drift Detected' | 'Significant Drift — Retraining Recommended';
   featureImportance: { feature: string; importance: number }[];
   isActive: boolean;
-  status: 'Production Active' | 'Candidate Staged' | 'Archived';
+  status: 'Production Active' | 'Candidate Staged' | 'Archived' | 'Archived Baseline';
 }
 
 export interface DataSource {
   id: string;
   name: string;
-  category: 'Relational & Spatial DB' | 'REST Microservice' | 'Weather Telemetry' | 'Traffic & Congestion' | 'GIS Basemaps' | 'Sensor Network';
+  category: 'Relational & Spatial DB' | 'Spatial DB' | 'REST Microservice' | 'Weather Telemetry' | 'Weather Service' | 'Traffic & Congestion' | 'Traffic Sensors' | 'GIS Basemaps' | 'Sensor Network';
   endpoint: string;
   status: 'Connected' | 'Syncing' | 'Degraded' | 'Offline';
   lastCheck: string;
@@ -230,4 +238,48 @@ export interface SystemSettings {
     weeklyDigest: boolean;
     modelDriftAlerts: boolean;
   };
+}
+
+export interface RoadRecommendationItem {
+  rank: number;
+  segment_id: string;
+  road_name: string;
+  ward: string;
+  road_type: string;
+  surface_type: string;
+  length_km: number;
+  coordinates: [number, number];
+  urgency_score: number;
+  risk_category: PriorityLevel;
+  predicted_risk?: number;
+  confidence_score: number;
+  uncertainty_margin: string;
+  recommended_action: string;
+  factors: Record<string, {
+    name: string;
+    score: number;
+    weight: number;
+    impact: 'High' | 'Moderate' | 'Low';
+    description: string;
+  }>;
+  explanation: {
+    summary: string;
+    primary_driver: string;
+    reasons: string[];
+    warnings?: string[];
+  };
+  data_quality_notes: string;
+  model_version: string;
+  scoring_version: string;
+  scored_at: string;
+}
+
+export interface PaginatedRecommendationsResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  active_weights: Record<string, number>;
+  thresholds: Record<string, number>;
+  items: RoadRecommendationItem[];
 }

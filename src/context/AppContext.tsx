@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   RoadSegment,
   IssueReport,
@@ -9,7 +9,7 @@ import {
   NotificationItem,
   SystemSettings
 } from '../types';
-import { apiService, DEFAULT_SETTINGS } from '../services/api';
+import { apiService, DEFAULT_SETTINGS, DashboardSummary } from '../services/api';
 
 export interface ToastMessage {
   id: string;
@@ -23,13 +23,18 @@ interface AppContextType {
   settings: SystemSettings;
   updateSettings: (settings: SystemSettings) => void;
   resetAllData: () => void;
+  seedDemoData: () => Promise<void>;
+  resetToEmpty: () => Promise<void>;
   roads: RoadSegment[];
   reports: IssueReport[];
   inspections: Inspection[];
   predictions: RoadPrediction[];
   maintenancePlans: MaintenancePlan[];
   notifications: NotificationItem[];
+  dashboardSummary: DashboardSummary | null;
   unreadNotificationCount: number;
+  lastRefreshTime: string;
+  isSyncing: boolean;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   refreshData: () => Promise<void>;
@@ -38,10 +43,20 @@ interface AppContextType {
   removeToast: (id: string) => void;
   globalSearchQuery: string;
   setGlobalSearchQuery: (q: string) => void;
-  // CRUD actions that refresh state
   createRoad: (data: Omit<RoadSegment, 'id'>) => Promise<RoadSegment>;
   updateRoad: (id: string, updates: Partial<RoadSegment>) => Promise<RoadSegment>;
-  createReport: (data: Omit<IssueReport, 'id' | 'statusHistory'>) => Promise<IssueReport>;
+  createReport: (data: {
+    roadName: string;
+    coordinates: [number, number];
+    category: string;
+    severity: string;
+    description: string;
+    imageUrl?: string;
+    reporterName?: string;
+    reporterContact?: string;
+    source?: string;
+    segmentId?: string;
+  }) => Promise<IssueReport>;
   updateReport: (id: string, updates: Partial<IssueReport>) => Promise<IssueReport>;
   createInspection: (data: Omit<Inspection, 'id'>) => Promise<Inspection>;
   updateInspection: (id: string, updates: Partial<Inspection>) => Promise<Inspection>;
@@ -61,8 +76,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [predictions, setPredictions] = useState<RoadPrediction[]>([]);
   const [maintenancePlans, setMaintenancePlans] = useState<MaintenancePlan[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [lastRefreshTime, setLastRefreshTime] = useState<string>('Just now');
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const isRefreshingRef = useRef(false);
 
   const addToast = (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -77,9 +97,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const refreshData = async () => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+    setIsSyncing(true);
     try {
-      const [u, r, rep, ins, pred, mnt, notif] = await Promise.all([
+      const [u, summary, r, rep, ins, pred, mnt, notif] = await Promise.all([
         apiService.getCurrentUser(),
+        apiService.getDashboardSummary(),
         apiService.getRoads(),
         apiService.getReports(),
         apiService.getInspections(),
@@ -88,42 +112,67 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         apiService.getNotifications(),
       ]);
       setCurrentUser(u);
+      setDashboardSummary(summary);
       setRoads(r);
       setReports(rep);
       setInspections(ins);
       setPredictions(pred);
       setMaintenancePlans(mnt);
       setNotifications(notif);
+      setLastRefreshTime(new Date().toLocaleTimeString());
     } catch (e) {
       console.error('Failed to load application data:', e);
-      addToast('error', 'Sync Failure', 'Failed to refresh data from service layer.');
+    } finally {
+      isRefreshingRef.current = false;
+      setIsSyncing(false);
     }
   };
 
+  // Initial load
   useEffect(() => {
     refreshData();
   }, []);
 
+  // Section 12: Real-time background update polling (every 12 seconds, paused if tab hidden)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.hidden) return; // Stop unnecessary polling when tab inactive
+      refreshData();
+    }, 12000);
+    return () => clearInterval(interval);
+  }, []);
+
   const updateSettings = (newSettings: SystemSettings) => {
-    apiService.updateSettings(newSettings);
+    apiService.saveSettings(newSettings);
     setSettingsState(newSettings);
     addToast('success', 'Settings Saved', 'System preferences and risk scoring parameters updated.');
   };
 
-  const resetAllData = () => {
-    apiService.resetAllDemoData();
-    setSettingsState(DEFAULT_SETTINGS);
-    refreshData();
+  const resetAllData = async () => {
+    await apiService.seedDemoData();
+    await refreshData();
     addToast('info', 'Reset Complete', 'Demo data restored to initial state.');
   };
 
+  const seedDemoData = async () => {
+    await apiService.seedDemoData();
+    await refreshData();
+    addToast('success', 'Demo Data Seeded', 'Loaded 3 demonstration corridors and sample workflow records.');
+  };
+
+  const resetToEmpty = async () => {
+    await apiService.resetToEmpty();
+    await refreshData();
+    addToast('info', 'Database Cleared', 'All records cleared. Ready for new report submissions.');
+  };
+
   const markNotificationRead = async (id: string) => {
-    await apiService.markNotificationAsRead(id);
+    await apiService.markNotificationRead(id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const markAllNotificationsRead = async () => {
-    await apiService.markAllNotificationsAsRead();
+    await apiService.markAllNotificationsRead();
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     addToast('info', 'Notifications Cleared', 'All notices marked as read.');
   };
@@ -142,10 +191,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return res;
   };
 
-  const createReport = async (data: Omit<IssueReport, 'id' | 'statusHistory'>) => {
+  const createReport = async (data: {
+    roadName: string;
+    coordinates: [number, number];
+    category: string;
+    severity: string;
+    description: string;
+    imageUrl?: string;
+    reporterName?: string;
+    reporterContact?: string;
+    source?: string;
+    segmentId?: string;
+  }) => {
     const res = await apiService.createReport(data);
     await refreshData();
-    addToast('success', 'Report Logged', `Issue report ${res.id} submitted for ${res.roadName}.`);
+    addToast('success', 'Report Logged to Database', `Issue ${res.id} saved. Priority calculated: ${res.priorityLevel || (res as any).priority || res.severity || 'Medium'} (${(res as any).priorityScore ?? 'Calculated'}).`);
     return res;
   };
 
@@ -187,7 +247,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const runPredictionSimulation = async () => {
     const res = await apiService.runPredictionSimulation();
     await refreshData();
-    addToast('success', 'ML Prediction Complete', res.message);
+    addToast('success', 'Recommendation Engine Executed', res.message);
   };
 
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
@@ -199,13 +259,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         settings,
         updateSettings,
         resetAllData,
+        seedDemoData,
+        resetToEmpty,
         roads,
         reports,
         inspections,
         predictions,
         maintenancePlans,
         notifications,
+        dashboardSummary,
         unreadNotificationCount,
+        lastRefreshTime,
+        isSyncing,
         markNotificationRead,
         markAllNotificationsRead,
         refreshData,

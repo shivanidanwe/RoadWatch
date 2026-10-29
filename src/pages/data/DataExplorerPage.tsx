@@ -4,18 +4,10 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { INITIAL_DATASETS, DatasetMeta } from '../../mock/datasets';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import {
-  Database,
   Upload,
   Download,
-  CheckCircle2,
-  AlertTriangle,
-  FileText,
-  Search,
-  RefreshCw,
   Table,
-  Code2,
-  FileCheck,
-  X
+  Code2
 } from 'lucide-react';
 
 export const DataExplorerPage: React.FC = () => {
@@ -27,7 +19,6 @@ export const DataExplorerPage: React.FC = () => {
 
   // Modals
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showValidateModal, setShowValidateModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -56,7 +47,7 @@ export const DataExplorerPage: React.FC = () => {
           clearInterval(interval);
           setIsUploading(false);
           setShowUploadModal(false);
-          addToast('success', 'Upload Staged', 'Dataset validated against PostGIS schema (Demo Simulation).');
+          addToast('success', 'Upload Validated', 'Dataset validated against schema.');
           return 100;
         }
         return p + 25;
@@ -65,37 +56,37 @@ export const DataExplorerPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <PageHeader
-        title="Data Science Dataset Explorer"
-        subtitle="Inspect, validate, and preview spatial telemetry tables feeding the machine learning pavement degradation pipeline."
+        title="Dataset Explorer"
+        subtitle="Inspect, validate, and preview spatial telemetry tables feeding the machine learning pipeline."
         badge={
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-[#172033] border border-slate-200">
-            {datasets.length} Master Ingestion Tables
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#C4B5FD] border border-[#8B5CF6]/30">
+            {datasets.length} Ingestion Tables
           </span>
         }
         actions={
           <>
             <button
               onClick={() => handleDownloadSample(selectedDataset)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#172033] bg-white border border-[#E2E8F0] rounded-lg hover:bg-slate-50 transition shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#F5F3FF] bg-[#2B2042] border border-[#3B2D53] rounded-lg hover:bg-[#3B2D53] transition shadow-xs"
             >
-              <Download className="w-3.5 h-3.5 text-[#64748B]" />
+              <Download className="w-3.5 h-3.5 text-[#A78BFA]" />
               <span>Sample CSV</span>
             </button>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg shadow-xs transition"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Upload Dataset CSV</span>
+              <span>Upload CSV</span>
             </button>
           </>
         }
       />
 
       {/* Dataset Selection Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 min-w-0">
         {datasets.map(ds => {
           const isSelected = selectedDataset.id === ds.id;
 
@@ -103,91 +94,75 @@ export const DataExplorerPage: React.FC = () => {
             <div
               key={ds.id}
               onClick={() => setSelectedDataset(ds)}
-              className={`p-4 rounded-xl border cursor-pointer transition-all ${
+              className={`rounded-xl border p-4 shadow-xs cursor-pointer transition-all min-w-0 text-[#F5F3FF] ${
                 isSelected
-                  ? 'border-blue-600 bg-blue-50/20 shadow-md ring-2 ring-blue-600/10'
-                  : 'border-[#E2E8F0] bg-white hover:border-slate-300 shadow-sm'
+                  ? 'bg-[#2B2042] border-[#8B5CF6] ring-2 ring-[#8B5CF6]/30 shadow-sm'
+                  : 'bg-[#211735] border-[#3B2D53] hover:border-[#8B5CF6]/50'
               }`}
             >
               <div className="flex items-start justify-between">
-                <span className="font-mono text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
-                  {ds.id}
-                </span>
+                <span className="font-mono text-xs font-bold text-[#A78BFA]">{ds.id}</span>
                 <StatusBadge status={ds.validationStatus} />
               </div>
-              <h4 className="font-bold text-xs text-[#172033] mt-2 line-clamp-1">{ds.name}</h4>
-              <p className="text-[11px] text-[#64748B] mt-0.5 line-clamp-1">{ds.source}</p>
-
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-[#64748B]">
-                <span>{ds.recordCount.toLocaleString()} rows</span>
-                <span className="font-semibold text-slate-700">{ds.freshness}</span>
+              <h4 className="font-bold text-xs text-[#F5F3FF] mt-2 truncate">{ds.name}</h4>
+              <p className="text-[11px] text-[#B9AECF] mt-1 leading-snug line-clamp-2">{ds.description}</p>
+              <div className="mt-3 pt-2.5 border-t border-[#3B2D53] flex items-center justify-between text-[11px] text-[#B9AECF]">
+                <span>{ds.recordCount} rows</span>
+                <span>{ds.freshness}</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Selected Dataset Detail & Inspector */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-        {/* Table Header Details */}
-        <div className="p-5 border-b border-[#E2E8F0] bg-slate-50/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Dataset Details & Preview */}
+      <div className="bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs overflow-hidden min-w-0 text-[#F5F3FF]">
+        <div className="p-4 sm:p-5 border-b border-[#3B2D53] bg-[#140E22] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-blue-700">{selectedDataset.id}</span>
-              <StatusBadge status={selectedDataset.validationStatus} />
-            </div>
-            <h3 className="text-base font-bold text-[#172033] mt-1">{selectedDataset.name}</h3>
-            <p className="text-xs text-[#64748B] mt-0.5">{selectedDataset.description}</p>
+            <h3 className="font-bold text-sm text-[#F5F3FF]">{selectedDataset.name}</h3>
+            <p className="text-xs text-[#B9AECF]">Source: {selectedDataset.source}</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-[#3B2D53] p-0.5 bg-[#140E22] text-xs">
             <button
-              onClick={() => setShowValidateModal(true)}
-              className="px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-semibold text-[#172033] hover:bg-slate-50 flex items-center gap-1.5 shadow-2xs"
+              onClick={() => setActiveTab('preview')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                activeTab === 'preview' ? 'bg-[#8B5CF6] text-white shadow-xs' : 'text-[#B9AECF]'
+              }`}
             >
-              <FileCheck className="w-3.5 h-3.5 text-blue-600" />
-              <span>Validate Schema</span>
+              <Table className="w-3.5 h-3.5" />
+              <span>Data Preview</span>
             </button>
-            <div className="flex rounded-lg border border-[#E2E8F0] p-0.5 bg-slate-100 text-xs">
-              <button
-                onClick={() => setActiveTab('preview')}
-                className={`px-3 py-1 rounded-md font-medium transition ${
-                  activeTab === 'preview' ? 'bg-white text-[#172033] shadow-xs' : 'text-[#64748B]'
-                }`}
-              >
-                Data Preview
-              </button>
-              <button
-                onClick={() => setActiveTab('schema')}
-                className={`px-3 py-1 rounded-md font-medium transition ${
-                  activeTab === 'schema' ? 'bg-white text-[#172033] shadow-xs' : 'text-[#64748B]'
-                }`}
-              >
-                Schema Specification
-              </button>
-            </div>
+            <button
+              onClick={() => setActiveTab('schema')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                activeTab === 'schema' ? 'bg-[#8B5CF6] text-white shadow-xs' : 'text-[#B9AECF]'
+              }`}
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Schema Definition</span>
+            </button>
           </div>
         </div>
 
-        {/* Tab 1: Preview Records */}
         {activeTab === 'preview' ? (
-          <div className="overflow-x-auto min-h-[280px]">
+          <div className="overflow-x-auto min-w-0">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-[#E2E8F0] text-[#64748B] font-semibold uppercase text-[10px]">
-                  {selectedDataset.schema.map(col => (
-                    <th key={col.name} className="py-2.5 px-4">
-                      {col.name}
+                <tr className="bg-[#140E22] border-b border-[#3B2D53] text-[#A78BFA] font-bold uppercase text-[11px]">
+                  {Object.keys(selectedDataset.sampleRecords[0] || {}).map(col => (
+                    <th key={col} className="py-2.5 px-4 whitespace-nowrap">
+                      {col}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E8F0]">
+              <tbody className="divide-y divide-[#3B2D53]/50 text-[#F5F3FF]">
                 {selectedDataset.sampleRecords.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/60">
-                    {selectedDataset.schema.map(col => (
-                      <td key={col.name} className="py-3 px-4 text-[#172033] font-mono text-[11px]">
-                        {row[col.name] !== undefined ? String(row[col.name]) : '—'}
+                  <tr key={idx} className="hover:bg-[#2B2042]/50 transition">
+                    {Object.values(row).map((val: any, cidx) => (
+                      <td key={cidx} className="py-2.5 px-4 whitespace-nowrap">
+                        {String(val)}
                       </td>
                     ))}
                   </tr>
@@ -196,168 +171,82 @@ export const DataExplorerPage: React.FC = () => {
             </table>
           </div>
         ) : (
-          /* Tab 2: Schema Inspector */
-          <div className="p-5 space-y-4">
-            <h4 className="font-bold text-xs text-[#172033] uppercase tracking-wider">
-              PostgreSQL / PostGIS Relational Schema
-            </h4>
-            <div className="overflow-x-auto border border-[#E2E8F0] rounded-xl">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 text-[#64748B] font-semibold uppercase text-[10px] border-b border-[#E2E8F0]">
-                    <th className="py-2.5 px-4">Column Name</th>
-                    <th className="py-2.5 px-4">SQL Data Type</th>
-                    <th className="py-2.5 px-4">Nullable</th>
-                    <th className="py-2.5 px-4">Domain Description</th>
+          <div className="overflow-x-auto min-w-0">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-[#140E22] border-b border-[#3B2D53] text-[#A78BFA] font-bold uppercase text-[11px]">
+                  <th className="py-2.5 px-4">Column Name</th>
+                  <th className="py-2.5 px-4">Data Type</th>
+                  <th className="py-2.5 px-4">Nullable</th>
+                  <th className="py-2.5 px-4">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#3B2D53]/50 text-[#F5F3FF]">
+                {selectedDataset.schema.map((field, idx) => (
+                  <tr key={idx} className="hover:bg-[#2B2042]/50 transition">
+                    <td className="py-2.5 px-4 font-mono font-semibold text-[#A78BFA]">{field.name}</td>
+                    <td className="py-2.5 px-4 text-[#B9AECF] font-mono text-[11px]">{field.type}</td>
+                    <td className="py-2.5 px-4">{field.nullable ? 'Yes' : 'No'}</td>
+                    <td className="py-2.5 px-4 text-[#B9AECF]">{field.description}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E2E8F0]">
-                  {selectedDataset.schema.map(field => (
-                    <tr key={field.name} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-4 font-mono font-bold text-blue-700">{field.name}</td>
-                      <td className="py-2.5 px-4 font-mono text-slate-700">{field.type}</td>
-                      <td className="py-2.5 px-4 text-[#64748B]">{field.nullable ? 'YES' : 'NO (NOT NULL)'}</td>
-                      <td className="py-2.5 px-4 text-[#64748B]">{field.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-
-        {/* Quality Metrics Footer */}
-        <div className="p-4 border-t border-[#E2E8F0] bg-slate-50/50 flex flex-wrap items-center justify-between text-xs text-[#64748B] gap-4">
-          <div className="flex items-center gap-4">
-            <span>
-              Missing Null Values: <strong>{selectedDataset.missingValuesPct}%</strong>
-            </span>
-            <span>&bull;</span>
-            <span>
-              Validation Pipeline: <strong>Passed Constraints</strong>
-            </span>
-            <span>&bull;</span>
-            <span>
-              Last Ingested: <strong>{selectedDataset.lastUpdated}</strong>
-            </span>
-          </div>
-          <span className="text-[10px] text-[#94A3B8]">
-            Storage: PostgreSQL PostGIS Spatial Engine
-          </span>
-        </div>
       </div>
 
-      {/* Upload CSV Modal */}
+      {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] max-w-md w-full p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-              <h3 className="text-sm font-bold text-[#172033]">Upload Road Data CSV</h3>
-              <button onClick={() => setShowUploadModal(false)} className="text-[#94A3B8] hover:text-[#172033]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[#211735] rounded-xl shadow-2xl border border-[#3B2D53] max-w-md w-full p-6 text-xs space-y-4 text-[#F5F3FF]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#3B2D53]">
+              <h3 className="text-sm font-bold text-[#F5F3FF]">Upload Dataset CSV</h3>
+              <button onClick={() => setShowUploadModal(false)} className="text-[#B9AECF] hover:text-[#F5F3FF]">
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              <div>
-                <label className="block font-semibold text-[#172033] mb-1">Target Table Layer</label>
-                <select className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white">
-                  {datasets.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} ({d.id})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#172033] mb-1">Select File (.csv or .geojson)</label>
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-500 cursor-pointer transition">
-                  <Upload className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <p className="font-semibold text-[#172033]">Click to choose CSV file or drag and drop</p>
-                  <p className="text-[11px] text-[#94A3B8] mt-1">UTF-8 encoded, comma-delimited up to 50MB</p>
+            <form onSubmit={handleUploadSubmit} className="space-y-3.5">
+              <div className="border-2 border-dashed border-[#3B2D53] rounded-xl p-6 text-center space-y-2 hover:border-[#8B5CF6]/50 transition bg-[#140E22]">
+                <Upload className="w-8 h-8 text-[#A78BFA] mx-auto" />
+                <div className="text-xs font-semibold text-[#F5F3FF]">
+                  Drag and drop your dataset CSV here
                 </div>
+                <p className="text-[11px] text-[#B9AECF]">
+                  Validates column types, coordinates, and missing values
+                </p>
               </div>
 
               {isUploading && (
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[11px]">
-                    <span>Validating schema records...</span>
+                  <div className="flex justify-between text-[11px] text-[#B9AECF]">
+                    <span>Validating schema...</span>
                     <span>{uploadProgress}%</span>
                   </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-2 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  <div className="w-full bg-[#140E22] rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-[#8B5CF6] h-1.5 rounded-full" style={{ width: `${uploadProgress}%` }} />
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#3B2D53]">
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(false)}
-                  className="px-3.5 py-1.5 border border-[#E2E8F0] rounded-lg font-medium text-[#64748B] hover:bg-slate-50"
+                  className="px-3.5 py-1.5 border border-[#3B2D53] rounded-lg font-medium text-[#B9AECF] hover:bg-[#2B2042] transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs"
+                  className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold rounded-lg shadow-xs transition disabled:opacity-50"
                 >
-                  {isUploading ? 'Uploading...' : 'Validate & Ingest'}
+                  {isUploading ? 'Validating...' : 'Validate & Ingest'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Validate Modal */}
-      {showValidateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] max-w-lg w-full p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-              <h3 className="text-sm font-bold text-[#172033]">Data Integrity &amp; Validation Report</h3>
-              <button onClick={() => setShowValidateModal(false)} className="text-[#94A3B8] hover:text-[#172033]">
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-xs">Schema Verification Passed</h4>
-                  <p className="text-[11px] mt-0.5">
-                    All {selectedDataset.recordCount} rows comply with strict PostgreSQL column constraints and non-null rules.
-                  </p>
-                </div>
-              </div>
-
-              <div className="divide-y divide-slate-100 border border-[#E2E8F0] rounded-xl overflow-hidden text-xs">
-                <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">Primary Key Uniqueness:</span>
-                  <strong className="text-emerald-700 font-semibold">100% Unique</strong>
-                </div>
-                <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">WGS84 Coordinate Extents:</span>
-                  <strong className="text-emerald-700 font-semibold">Valid (EPSG:4326)</strong>
-                </div>
-                <div className="p-2.5 flex items-center justify-between">
-                  <span className="text-[#64748B]">Missing Value Rate:</span>
-                  <strong className="text-slate-800">{selectedDataset.missingValuesPct}% (Within allowable limit)</strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-3 border-t border-[#E2E8F0]">
-              <button
-                onClick={() => setShowValidateModal(false)}
-                className="px-4 py-1.5 bg-blue-600 text-white font-semibold rounded-lg text-xs"
-              >
-                Close Report
-              </button>
-            </div>
           </div>
         </div>
       )}

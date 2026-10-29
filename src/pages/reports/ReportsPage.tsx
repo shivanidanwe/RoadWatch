@@ -11,14 +11,13 @@ import {
   PlusCircle,
   Eye,
   Filter,
-  CheckCircle2,
-  Clock,
-  UserCheck,
-  CalendarCheck,
   FileImage,
-  ArrowRight,
-  ExternalLink,
-  MapPin
+  MapPin,
+  Navigation,
+  Clock,
+  CheckCircle,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
@@ -28,19 +27,23 @@ export const ReportsPage: React.FC = () => {
 
   const [selectedReport, setSelectedReport] = useState<IssueReport | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [severityFilter, setSeverityFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  // Add form fields
-  const [formSegmentId, setFormSegmentId] = useState('RD-101');
+  // Simplified Form fields
+  const [formRoadName, setFormRoadName] = useState('');
+  const [formLat, setFormLat] = useState('12.9716');
+  const [formLng, setFormLng] = useState('77.5946');
   const [formCategory, setFormCategory] = useState<IssueCategory>('Pothole');
   const [formSeverity, setFormSeverity] = useState<ReportSeverity>('High');
   const [formDescription, setFormDescription] = useState('');
-  const [formSource, setFormSource] = useState<'Citizen App' | 'Field Officer' | 'Automated Sensor' | 'Municipal Patrol'>('Field Officer');
-  const [formReporterName, setFormReporterName] = useState('Er. Inspection Desk');
+  const [formReporterName, setFormReporterName] = useState('Citizen Reporter');
+  const [formReporterContact, setFormReporterContact] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
 
   // Check search param
@@ -61,34 +64,70 @@ export const ReportsPage: React.FC = () => {
     });
   }, [reports, categoryFilter, severityFilter, statusFilter]);
 
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      addToast('warning', 'Geolocation Unavailable', 'Your browser does not support GPS geolocation.');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormLat(position.coords.latitude.toFixed(6));
+        setFormLng(position.coords.longitude.toFixed(6));
+        setIsLocating(false);
+        addToast('success', 'Location Acquired', `GPS fix: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
+      },
+      (error) => {
+        setIsLocating(false);
+        addToast('info', 'Manual Location Fallback', 'Could not obtain GPS lock. Using manual coordinates.');
+      },
+      { timeout: 8000 }
+    );
+  };
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formRoadName.trim()) {
+      addToast('warning', 'Missing Road Name', 'Please provide the name of the road.');
+      return;
+    }
     if (!formDescription.trim()) {
       addToast('warning', 'Missing Description', 'Please provide distress details.');
       return;
     }
 
-    const road = roads.find(r => r.id === formSegmentId);
-    if (!road) return;
+    setIsSubmitting(true);
+    try {
+      const lat = parseFloat(formLat) || 12.9716;
+      const lng = parseFloat(formLng) || 77.5946;
 
-    await createReport({
-      segmentId: formSegmentId,
-      roadName: road.name,
-      category: formCategory,
-      severity: formSeverity,
-      source: formSource,
-      reportDate: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      status: 'Submitted',
-      assignedTeam: 'Central Inspection Desk',
-      description: formDescription,
-      coordinates: road.coordinates,
-      imageUrl: formImageUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=600&q=80',
-      reporterName: formReporterName,
-    });
+      const created = await createReport({
+        roadName: formRoadName.trim(),
+        coordinates: [lat, lng],
+        category: formCategory,
+        severity: formSeverity,
+        description: formDescription.trim(),
+        imageUrl: formImageUrl.trim() || undefined,
+        reporterName: formReporterName.trim() || 'Citizen Reporter',
+        reporterContact: formReporterContact.trim() || undefined,
+        source: 'Citizen App',
+      });
 
-    setShowAddModal(false);
-    setFormDescription('');
-    setFormImageUrl('');
+      setShowAddModal(false);
+      setFormRoadName('');
+      setFormDescription('');
+      setFormImageUrl('');
+      setFormReporterContact('');
+      addToast(
+        'success',
+        'Report Submitted',
+        `Report ${created.id} saved with priority ${created.priorityLevel || 'High'}.`
+      );
+    } catch (err) {
+      addToast('error', 'Submission Failed', 'Could not save report to server.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAdvanceStatus = async (report: IssueReport, nextStatus: ReportStatus) => {
@@ -97,6 +136,7 @@ export const ReportsPage: React.FC = () => {
       verifiedBy: 'Chief Engineer Office',
     });
     setSelectedReport(prev => (prev ? { ...prev, status: nextStatus } : null));
+    addToast('success', 'Status Updated', `Report ${report.id} moved to ${nextStatus}.`);
   };
 
   const columns: Column<IssueReport>[] = [
@@ -106,29 +146,31 @@ export const ReportsPage: React.FC = () => {
       sortable: true,
       width: '120px',
       render: r => (
-        <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+        <span className="font-mono text-xs font-bold text-[#C4B5FD] bg-[#8B5CF6]/20 px-2 py-0.5 rounded border border-[#8B5CF6]/30">
           {r.id}
         </span>
       ),
     },
     {
       key: 'roadName',
-      header: 'Road Segment',
+      header: 'Road Corridor',
       sortable: true,
       render: r => (
         <div>
-          <span className="font-bold text-[#172033] block">{r.roadName}</span>
-          <span className="text-[11px] font-mono text-[#94A3B8]">{r.segmentId}</span>
+          <span className="font-semibold text-[#F5F3FF] block">{r.roadName}</span>
+          <span className="text-[11px] font-mono text-[#B9AECF]">
+            {r.coordinates ? `${r.coordinates[0].toFixed(4)}, ${r.coordinates[1].toFixed(4)}` : r.segmentId}
+          </span>
         </div>
       ),
     },
     {
       key: 'category',
-      header: 'Category',
+      header: 'Damage Type',
       sortable: true,
       render: r => (
-        <span className="font-medium text-[#172033] flex items-center gap-1.5">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+        <span className="font-medium text-[#F5F3FF] flex items-center gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-[#FBBF24]" />
           {r.category}
         </span>
       ),
@@ -139,13 +181,13 @@ export const ReportsPage: React.FC = () => {
       sortable: true,
       render: r => {
         const color = {
-          Critical: 'text-red-700 bg-red-50 border-red-200',
-          High: 'text-orange-700 bg-orange-50 border-orange-200',
-          Medium: 'text-amber-700 bg-amber-50 border-amber-200',
-          Low: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+          Critical: 'text-[#FB7185] bg-[#FB7185]/15 border-[#FB7185]/40',
+          High: 'text-[#FBBF24] bg-[#FBBF24]/15 border-[#FBBF24]/40',
+          Medium: 'text-[#60A5FA] bg-[#60A5FA]/15 border-[#60A5FA]/40',
+          Low: 'text-[#34D399] bg-[#34D399]/15 border-[#34D399]/40',
         }[r.severity];
         return (
-          <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${color}`}>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${color}`}>
             {r.severity}
           </span>
         );
@@ -155,13 +197,13 @@ export const ReportsPage: React.FC = () => {
       key: 'source',
       header: 'Source',
       sortable: true,
-      render: r => <span className="text-xs text-[#64748B]">{r.source}</span>,
+      render: r => <span className="text-xs text-[#B9AECF]">{r.source}</span>,
     },
     {
       key: 'reportDate',
-      header: 'Report Date',
+      header: 'Submitted',
       sortable: true,
-      render: r => <span className="text-[11px] text-[#64748B]">{r.reportDate}</span>,
+      render: r => <span className="text-[11px] text-[#B9AECF]">{r.reportDate}</span>,
     },
     {
       key: 'status',
@@ -179,66 +221,65 @@ export const ReportsPage: React.FC = () => {
             e.stopPropagation();
             setSelectedReport(r);
           }}
-          className="p-1.5 text-[#64748B] hover:text-blue-600 rounded hover:bg-slate-100 transition"
-          title="Inspect details and status workflow"
+          className="p-1.5 text-[#B9AECF] hover:text-[#A78BFA] rounded hover:bg-[#2B2042] transition"
+          title="Inspect details"
         >
-          <Eye className="w-3.5 h-3.5" />
+          <Eye className="w-4 h-4" />
         </button>
       ),
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <PageHeader
         title="Distress &amp; Issue Reports"
-        subtitle="Manage citizen, automated sensor, and patrol road distress tickets through multi-stage municipal verification."
+        subtitle="Manage citizen, automated sensor, and patrol road distress tickets with live urgency scoring."
         badge={
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-[#172033] border border-slate-200">
-            {filteredReports.length} records
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#C4B5FD] border border-[#8B5CF6]/30">
+            {filteredReports.length} Active Records
           </span>
         }
         actions={
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg shadow-xs transition"
           >
             <PlusCircle className="w-3.5 h-3.5" />
-            <span>Add Issue Report</span>
+            <span>Submit Report</span>
           </button>
         }
       />
 
       {/* Filter Bar */}
-      <div className="bg-white p-3.5 rounded-xl border border-[#E2E8F0] shadow-sm flex flex-wrap items-center gap-3 text-xs">
-        <div className="flex items-center gap-1 text-[#64748B] font-semibold">
-          <Filter className="w-3.5 h-3.5 text-blue-600" />
+      <div className="bg-[#211735] p-3.5 rounded-xl border border-[#3B2D53] shadow-xs flex flex-wrap items-center gap-3 text-xs min-w-0 text-[#F5F3FF]">
+        <div className="flex items-center gap-1 text-[#B9AECF] font-semibold">
+          <Filter className="w-3.5 h-3.5 text-[#A78BFA]" />
           <span>Filters:</span>
         </div>
 
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Category:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Type:</span>
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
-            <option value="ALL">All Categories</option>
+            <option value="ALL">All Types</option>
             <option value="Pothole">Pothole</option>
-            <option value="Surface cracking">Surface cracking</option>
+            <option value="Road crack">Road crack</option>
+            <option value="Surface damage">Surface damage</option>
             <option value="Waterlogging">Waterlogging</option>
-            <option value="Road subsidence">Road subsidence</option>
-            <option value="Surface deterioration">Surface deterioration</option>
-            <option value="Edge failure">Edge failure</option>
+            <option value="Other">Other</option>
           </select>
         </div>
 
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Severity:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Severity:</span>
           <select
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
             <option value="ALL">All Severities</option>
             <option value="Critical">Critical</option>
@@ -248,19 +289,18 @@ export const ReportsPage: React.FC = () => {
           </select>
         </div>
 
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Workflow Status:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Status:</span>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
             <option value="ALL">All Statuses</option>
             <option value="Submitted">Submitted</option>
             <option value="Under Review">Under Review</option>
             <option value="Verified">Verified</option>
             <option value="Inspection Scheduled">Inspection Scheduled</option>
-            <option value="Maintenance Planned">Maintenance Planned</option>
             <option value="Resolved">Resolved</option>
           </select>
         </div>
@@ -272,7 +312,7 @@ export const ReportsPage: React.FC = () => {
               setSeverityFilter('ALL');
               setStatusFilter('ALL');
             }}
-            className="text-xs text-blue-600 hover:underline font-medium ml-auto"
+            className="text-xs text-[#A78BFA] hover:underline font-semibold ml-auto"
           >
             Reset Filters
           </button>
@@ -300,7 +340,7 @@ export const ReportsPage: React.FC = () => {
             <div className="flex items-center justify-between w-full">
               <button
                 onClick={() => navigate(`/map?select=${selectedReport.segmentId}`)}
-                className="px-3 py-1.5 text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1"
+                className="px-3 py-1.5 text-xs text-[#A78BFA] font-semibold hover:underline flex items-center gap-1"
               >
                 <MapPin className="w-3.5 h-3.5" /> View on Map
               </button>
@@ -309,7 +349,7 @@ export const ReportsPage: React.FC = () => {
                 {selectedReport.status === 'Submitted' && (
                   <button
                     onClick={() => handleAdvanceStatus(selectedReport, 'Under Review')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
+                    className="px-3 py-1.5 rounded-lg bg-[#8B5CF6] text-white text-xs font-semibold hover:bg-[#7C3AED] transition"
                   >
                     Mark Under Review
                   </button>
@@ -317,7 +357,7 @@ export const ReportsPage: React.FC = () => {
                 {selectedReport.status === 'Under Review' && (
                   <button
                     onClick={() => handleAdvanceStatus(selectedReport, 'Verified')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
+                    className="px-3 py-1.5 rounded-lg bg-[#8B5CF6] text-white text-xs font-semibold hover:bg-[#7C3AED] transition"
                   >
                     Verify Distress
                   </button>
@@ -325,23 +365,15 @@ export const ReportsPage: React.FC = () => {
                 {selectedReport.status === 'Verified' && (
                   <button
                     onClick={() => handleAdvanceStatus(selectedReport, 'Inspection Scheduled')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
+                    className="px-3 py-1.5 rounded-lg bg-[#8B5CF6] text-white text-xs font-semibold hover:bg-[#7C3AED] transition"
                   >
-                    Schedule Field Inspection
+                    Schedule Inspection
                   </button>
                 )}
                 {selectedReport.status === 'Inspection Scheduled' && (
                   <button
-                    onClick={() => handleAdvanceStatus(selectedReport, 'Maintenance Planned')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
-                  >
-                    Integrate to Work Plan
-                  </button>
-                )}
-                {selectedReport.status === 'Maintenance Planned' && (
-                  <button
                     onClick={() => handleAdvanceStatus(selectedReport, 'Resolved')}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                    className="px-3 py-1.5 rounded-lg bg-[#34D399] text-slate-900 text-xs font-bold hover:bg-emerald-400 transition"
                   >
                     Mark Resolved
                   </button>
@@ -352,73 +384,86 @@ export const ReportsPage: React.FC = () => {
         }
       >
         {selectedReport && (
-          <div className="space-y-5 text-xs">
+          <div className="space-y-4 text-xs text-[#F5F3FF]">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 font-bold text-slate-800 border">
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#8B5CF6]/20 font-bold text-[#C4B5FD] border border-[#8B5CF6]/30">
                 {selectedReport.id}
               </span>
               <StatusBadge status={selectedReport.status} />
             </div>
 
-            {/* Photo preview if present */}
+            {/* Urgency Score Card */}
+            {selectedReport.priorityScore !== undefined && (
+              <div className="p-3.5 rounded-xl bg-[#140E22] border border-[#3B2D53] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-[#B9AECF] uppercase font-bold tracking-wider">Computed Urgency Score</span>
+                  <div className="text-lg font-bold text-[#FB7185] flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-[#FBBF24]" />
+                    {selectedReport.priorityScore} / 100
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Priority Class</span>
+                  <div className="text-xs font-bold text-[#A78BFA]">{selectedReport.priorityLevel || selectedReport.severity}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Photo preview */}
             {selectedReport.imageUrl && (
               <div className="space-y-1.5">
-                <span className="text-[10px] uppercase font-bold text-[#64748B] flex items-center gap-1">
-                  <FileImage className="w-3.5 h-3.5" /> Distress Photograph Attachment
+                <span className="text-[10px] uppercase font-bold text-[#B9AECF] flex items-center gap-1">
+                  <FileImage className="w-3.5 h-3.5 text-[#A78BFA]" /> Distress Photograph
                 </span>
-                <div className="relative rounded-xl overflow-hidden border border-[#E2E8F0] max-h-48">
+                <div className="relative rounded-xl overflow-hidden border border-[#3B2D53] max-h-48">
                   <img
                     src={selectedReport.imageUrl}
                     alt={selectedReport.category}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute bottom-2 right-2 bg-slate-900/80 text-white text-[10px] px-2 py-0.5 rounded">
-                    Visual Evidence Validated
-                  </div>
                 </div>
               </div>
             )}
 
             {/* Description */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] space-y-1">
-              <span className="text-[10px] uppercase font-bold text-[#64748B]">Distress Narrative</span>
-              <p className="text-xs text-[#172033] leading-relaxed">{selectedReport.description}</p>
+            <div className="p-3.5 rounded-xl bg-[#140E22] border border-[#3B2D53] space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#B9AECF]">Distress Summary</span>
+              <p className="text-xs text-[#F5F3FF] leading-relaxed">{selectedReport.description}</p>
             </div>
 
             {/* Meta Attributes */}
-            <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl border border-[#E2E8F0]">
+            <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl border border-[#3B2D53] bg-[#140E22]">
               <div>
-                <span className="text-[10px] text-[#64748B] uppercase font-bold">Severity</span>
-                <p className="font-bold text-[#172033]">{selectedReport.severity}</p>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Severity</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedReport.severity}</p>
               </div>
               <div>
-                <span className="text-[10px] text-[#64748B] uppercase font-bold">Intake Channel</span>
-                <p className="font-bold text-[#172033]">{selectedReport.source}</p>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Source</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedReport.source}</p>
               </div>
               <div>
-                <span className="text-[10px] text-[#64748B] uppercase font-bold">Reported By</span>
-                <p className="font-bold text-[#172033]">{selectedReport.reporterName || 'Civic Portal'}</p>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Reported By</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedReport.reporterName || 'Citizen Portal'}</p>
               </div>
               <div>
-                <span className="text-[10px] text-[#64748B] uppercase font-bold">Assigned Squad</span>
-                <p className="font-bold text-[#172033]">{selectedReport.assignedTeam || 'Unassigned'}</p>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Assigned Squad</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedReport.assignedTeam || 'Unassigned'}</p>
               </div>
             </div>
 
             {/* Workflow Progress Timeline */}
             <div className="space-y-3 pt-2">
-              <h4 className="text-[10px] uppercase font-bold text-[#64748B] tracking-wider">
-                Workflow Progress History
+              <h4 className="text-[10px] uppercase font-bold text-[#B9AECF] tracking-wider">
+                Status History
               </h4>
-              <div className="border-l-2 border-blue-200 ml-2 pl-4 space-y-4">
+              <div className="border-l-2 border-[#8B5CF6]/40 ml-2 pl-4 space-y-3">
                 {selectedReport.statusHistory?.map((step, idx) => (
                   <div key={idx} className="relative">
-                    <span className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-white" />
-                    <div className="font-bold text-[#172033]">{step.status}</div>
-                    <div className="text-[10px] text-[#94A3B8]">
+                    <span className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" />
+                    <div className="font-bold text-[#F5F3FF]">{step.status}</div>
+                    <div className="text-[10px] text-[#B9AECF]">
                       {step.timestamp} &bull; {step.updatedBy}
                     </div>
-                    {step.notes && <p className="text-[11px] text-[#64748B] mt-0.5">{step.notes}</p>}
                   </div>
                 ))}
               </div>
@@ -427,126 +472,173 @@ export const ReportsPage: React.FC = () => {
         )}
       </DetailDrawer>
 
-      {/* Add Issue Report Modal */}
+      {/* Simplified Road Issue Report Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] max-w-lg w-full p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-              <h3 className="text-sm font-bold text-[#172033]">Submit Municipal Issue Report</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-[#94A3B8] hover:text-[#172033]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[#211735] rounded-xl shadow-2xl border border-[#3B2D53] max-w-lg w-full p-6 text-xs space-y-4 text-[#F5F3FF]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#3B2D53]">
+              <div>
+                <h3 className="text-sm font-bold text-[#F5F3FF]">Submit Road Damage Report</h3>
+                <p className="text-[11px] text-[#B9AECF]">Report road distress for immediate algorithmic priority scoring</p>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-[#B9AECF] hover:text-[#F5F3FF] text-base"
+              >
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-3.5">
+              {/* Field 1: Road Name */}
               <div>
-                <label className="block font-semibold text-[#172033] mb-1">Affected Road Segment</label>
-                <select
-                  value={formSegmentId}
-                  onChange={e => setFormSegmentId(e.target.value)}
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
-                >
-                  {roads.map(r => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} ({r.id}) &bull; {r.ward}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Distress Category</label>
-                  <select
-                    value={formCategory}
-                    onChange={e => setFormCategory(e.target.value as IssueCategory)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
-                  >
-                    <option value="Pothole">Pothole</option>
-                    <option value="Surface cracking">Surface cracking</option>
-                    <option value="Waterlogging">Waterlogging</option>
-                    <option value="Road subsidence">Road subsidence</option>
-                    <option value="Surface deterioration">Surface deterioration</option>
-                    <option value="Edge failure">Edge failure</option>
-                    <option value="Other">Other Distress</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Severity Level</label>
-                  <select
-                    value={formSeverity}
-                    onChange={e => setFormSeverity(e.target.value as ReportSeverity)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
-                  >
-                    <option value="Critical">Critical (Immediate hazard)</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#172033] mb-1">Detailed Description &amp; Dimensions</label>
-                <textarea
-                  rows={3}
+                <label className="block font-semibold text-[#F5F3FF] mb-1">
+                  Road Name <span className="text-[#FB7185]">*</span>
+                </label>
+                <input
+                  type="text"
                   required
-                  value={formDescription}
-                  onChange={e => setFormDescription(e.target.value)}
-                  placeholder="State exact landmark, lane number, depth/extent, and traffic hazard..."
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  value={formRoadName}
+                  onChange={e => setFormRoadName(e.target.value)}
+                  placeholder="e.g. Outer Ring Road, MG Road, 100 Feet Road"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none"
                 />
               </div>
 
+              {/* Field 2: Location (Latitude, Longitude + GPS button) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-[#F5F3FF]">
+                    Location Coordinates <span className="text-[#FB7185]">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleUseMyLocation}
+                    disabled={isLocating}
+                    className="inline-flex items-center gap-1 text-[11px] text-[#A78BFA] hover:text-[#C4B5FD] font-semibold"
+                  >
+                    <Navigation className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
+                    <span>{isLocating ? 'Locating...' : 'Use My Location'}</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-[#B9AECF]">Latitude</span>
+                    <input
+                      type="text"
+                      required
+                      value={formLat}
+                      onChange={e => setFormLat(e.target.value)}
+                      placeholder="12.9716"
+                      className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] text-xs font-mono focus:border-[#A78BFA] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[#B9AECF]">Longitude</span>
+                    <input
+                      type="text"
+                      required
+                      value={formLng}
+                      onChange={e => setFormLng(e.target.value)}
+                      placeholder="77.5946"
+                      className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] text-xs font-mono focus:border-[#A78BFA] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Field 3 & 4: Damage Type and Severity */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Reporting Source</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Damage Type</label>
                   <select
-                    value={formSource}
-                    onChange={e => setFormSource(e.target.value as any)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    value={formCategory}
+                    onChange={e => setFormCategory(e.target.value as IssueCategory)}
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
-                    <option value="Field Officer">Field Officer</option>
-                    <option value="Citizen App">Citizen App</option>
-                    <option value="Municipal Patrol">Municipal Patrol</option>
-                    <option value="Automated Sensor">Automated Sensor</option>
+                    <option value="Pothole">Pothole</option>
+                    <option value="Road crack">Road crack</option>
+                    <option value="Surface damage">Surface damage</option>
+                    <option value="Waterlogging">Waterlogging</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Reporter Reference / Officer</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Severity</label>
+                  <select
+                    value={formSeverity}
+                    onChange={e => setFormSeverity(e.target.value as ReportSeverity)}
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
+                  >
+                    <option value="Critical">Critical (Immediate Hazard)</option>
+                    <option value="High">High (Impacting Traffic)</option>
+                    <option value="Medium">Medium (Moderate Wear)</option>
+                    <option value="Low">Low (Early Stage Minor)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Field 5: Description */}
+              <div>
+                <label className="block font-semibold text-[#F5F3FF] mb-1">
+                  Description <span className="text-[#FB7185]">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={formDescription}
+                  onChange={e => setFormDescription(e.target.value)}
+                  placeholder="Describe the pavement distress, approximate size, depth, or safety hazard..."
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none resize-none"
+                />
+              </div>
+
+              {/* Optional Fields: Image URL & Reporter */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[#B9AECF] mb-1">Photo URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={formImageUrl}
+                    onChange={e => setFormImageUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none text-[11px]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[#B9AECF] mb-1">Reporter Name (Optional)</label>
                   <input
                     type="text"
                     value={formReporterName}
                     onChange={e => setFormReporterName(e.target.value)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                    placeholder="Citizen / Patrol Officer"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none text-[11px]"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block font-semibold text-[#172033] mb-1">Distress Photo URL (Optional)</label>
-                <input
-                  type="url"
-                  value={formImageUrl}
-                  onChange={e => setFormImageUrl(e.target.value)}
-                  placeholder="https://... (or leave blank for standard distress thumbnail)"
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#3B2D53]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-3.5 py-1.5 border border-[#E2E8F0] rounded-lg font-medium text-[#64748B] hover:bg-slate-50"
+                  className="px-3.5 py-1.5 rounded-lg border border-[#3B2D53] text-[#B9AECF] hover:text-[#F5F3FF] hover:bg-[#2B2042] transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs"
+                  disabled={isSubmitting}
+                  className="px-4 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
                 >
-                  Register Report
+                  {isSubmitting ? (
+                    <span>Submitting &amp; Scoring...</span>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Submit &amp; Compute Priority</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

@@ -9,18 +9,18 @@ interface ConditionBadgeProps {
 
 export const ConditionBadge: React.FC<ConditionBadgeProps> = ({ condition, className = '', showDot = true }) => {
   const styles = {
-    Good: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    Fair: 'bg-blue-50 text-blue-800 border-blue-200',
-    Poor: 'bg-amber-50 text-amber-800 border-amber-200',
-    Critical: 'bg-rose-50 text-rose-800 border-rose-300',
-  }[condition] || 'bg-slate-50 text-slate-700 border-slate-200';
+    Good: 'bg-[#34D399]/15 text-[#34D399] border-[#34D399]/40',
+    Fair: 'bg-[#60A5FA]/15 text-[#60A5FA] border-[#60A5FA]/40',
+    Poor: 'bg-[#FBBF24]/15 text-[#FBBF24] border-[#FBBF24]/40',
+    Critical: 'bg-[#FB7185]/15 text-[#FB7185] border-[#FB7185]/40',
+  }[condition] || 'bg-[#2B2042] text-[#B9AECF] border-[#3B2D53]';
 
   const dot = {
-    Good: 'bg-emerald-500',
-    Fair: 'bg-blue-500',
-    Poor: 'bg-amber-500',
-    Critical: 'bg-rose-600',
-  }[condition] || 'bg-slate-400';
+    Good: 'bg-[#34D399]',
+    Fair: 'bg-[#60A5FA]',
+    Poor: 'bg-[#FBBF24]',
+    Critical: 'bg-[#FB7185]',
+  }[condition] || 'bg-[#B9AECF]';
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${styles} ${className}`}>

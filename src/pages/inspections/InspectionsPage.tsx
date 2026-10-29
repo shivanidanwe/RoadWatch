@@ -13,13 +13,9 @@ import {
   PlusCircle,
   Eye,
   Filter,
-  CheckCircle2,
-  Calendar,
   Clock,
   User,
   ClipboardList,
-  AlertTriangle,
-  FileCheck,
   MapPin
 } from 'lucide-react';
 
@@ -38,7 +34,7 @@ export const InspectionsPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('ALL');
 
   // Schedule form
-  const [formSegmentId, setFormSegmentId] = useState('RD-101');
+  const [formSegmentId, setFormSegmentId] = useState(roads[0]?.id || 'RD-DEMO-01');
   const [formInspector, setFormInspector] = useState('Er. Rajesh Verma');
   const [formDate, setFormDate] = useState('2024-11-05');
   const [formType, setFormType] = useState<InspectionType>('Routine');
@@ -81,6 +77,7 @@ export const InspectionsPage: React.FC = () => {
 
     setShowScheduleModal(false);
     setFormNotes('');
+    addToast('success', 'Inspection Created', `Audit dispatched for ${road.name}.`);
   };
 
   const openFindingsModal = (insp: Inspection) => {
@@ -101,7 +98,7 @@ export const InspectionsPage: React.FC = () => {
         damageSpreadPercentage: parseInt(findingDamageSpread) || 30,
         drainageCondition: findingDrainage,
         recommendedActions: findingActions.split(',').map(s => s.trim()),
-        summaryNotes: findingSummary || 'Field audit concluded. Pavement distressed beyond normal operational limits.',
+        summaryNotes: findingSummary || 'Field audit concluded with actionable repair recommendations.',
         completedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       },
     });
@@ -109,11 +106,13 @@ export const InspectionsPage: React.FC = () => {
     setShowFindingsModal(false);
     setActiveInspectionForFindings(null);
     setFindingSummary('');
+    addToast('success', 'Findings Saved', 'Inspection marked as Completed with ground truth.');
   };
 
   const handleAdvanceStatus = async (insp: Inspection, nextStatus: InspectionStatus) => {
     await updateInspection(insp.id, { status: nextStatus });
     setSelectedInspection(prev => (prev ? { ...prev, status: nextStatus } : null));
+    addToast('success', 'Status Updated', `Task moved to ${nextStatus}.`);
   };
 
   const columns: Column<Inspection>[] = [
@@ -121,9 +120,9 @@ export const InspectionsPage: React.FC = () => {
       key: 'id',
       header: 'Task ID',
       sortable: true,
-      width: '125px',
+      width: '110px',
       render: i => (
-        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+        <span className="font-mono text-xs font-bold text-[#C4B5FD] bg-[#8B5CF6]/20 px-2 py-0.5 rounded border border-[#8B5CF6]/30">
           {i.id}
         </span>
       ),
@@ -134,8 +133,8 @@ export const InspectionsPage: React.FC = () => {
       sortable: true,
       render: i => (
         <div>
-          <span className="font-bold text-[#172033] block">{i.roadName}</span>
-          <span className="text-[11px] text-[#94A3B8]">{i.ward} &bull; {i.segmentId}</span>
+          <span className="font-semibold text-[#F5F3FF] block">{i.roadName}</span>
+          <span className="text-[11px] text-[#B9AECF]">{i.ward} &bull; {i.segmentId}</span>
         </div>
       ),
     },
@@ -144,8 +143,8 @@ export const InspectionsPage: React.FC = () => {
       header: 'Inspector',
       sortable: true,
       render: i => (
-        <div className="flex items-center gap-1.5 text-xs text-[#172033] font-medium">
-          <User className="w-3.5 h-3.5 text-[#64748B]" />
+        <div className="flex items-center gap-1.5 text-xs text-[#F5F3FF] font-medium">
+          <User className="w-3.5 h-3.5 text-[#A78BFA]" />
           <span>{i.assignedInspector}</span>
         </div>
       ),
@@ -155,17 +154,17 @@ export const InspectionsPage: React.FC = () => {
       header: 'Target Date',
       sortable: true,
       render: i => (
-        <span className="text-xs text-[#64748B] flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5 text-[#94A3B8]" />
+        <span className="text-xs text-[#B9AECF] flex items-center gap-1">
+          <Clock className="w-3.5 h-3.5 text-[#A78BFA]" />
           {i.scheduledDate}
         </span>
       ),
     },
     {
       key: 'type',
-      header: 'Inspection Type',
+      header: 'Type',
       sortable: true,
-      render: i => <span className="text-xs text-[#64748B]">{i.type}</span>,
+      render: i => <span className="text-xs text-[#B9AECF]">{i.type}</span>,
     },
     {
       key: 'priority',
@@ -188,7 +187,7 @@ export const InspectionsPage: React.FC = () => {
           {i.status !== 'Completed' && i.status !== 'Reviewed' && (
             <button
               onClick={() => openFindingsModal(i)}
-              className="px-2 py-1 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded transition"
+              className="px-2 py-1 text-[11px] font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded transition shadow-xs"
               title="Record field survey findings"
             >
               Record Findings
@@ -196,7 +195,7 @@ export const InspectionsPage: React.FC = () => {
           )}
           <button
             onClick={() => setSelectedInspection(i)}
-            className="p-1.5 text-[#64748B] hover:text-blue-600 rounded hover:bg-slate-100 transition"
+            className="p-1.5 text-[#B9AECF] hover:text-[#A78BFA] rounded hover:bg-[#2B2042] transition"
             title="Inspect task details"
           >
             <Eye className="w-3.5 h-3.5" />
@@ -207,22 +206,22 @@ export const InspectionsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <PageHeader
         title="Field Inspection Management"
         subtitle="Schedule quality audits, assign certified pavement inspectors, and record ground-truth structural findings."
         badge={
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-[#172033] border border-slate-200">
-            {filteredInspections.length} tasks
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#C4B5FD] border border-[#8B5CF6]/30">
+            {filteredInspections.length} Tasks
           </span>
         }
         actions={
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-[#E2E8F0] p-0.5 bg-slate-100 text-xs">
+            <div className="flex rounded-lg border border-[#3B2D53] p-0.5 bg-[#140E22] text-xs">
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-1 rounded-md font-medium transition ${
-                  viewMode === 'list' ? 'bg-white text-[#172033] shadow-xs' : 'text-[#64748B]'
+                  viewMode === 'list' ? 'bg-[#8B5CF6] text-white shadow-xs' : 'text-[#B9AECF]'
                 }`}
               >
                 List View
@@ -230,7 +229,7 @@ export const InspectionsPage: React.FC = () => {
               <button
                 onClick={() => setViewMode('calendar')}
                 className={`px-3 py-1 rounded-md font-medium transition ${
-                  viewMode === 'calendar' ? 'bg-white text-[#172033] shadow-xs' : 'text-[#64748B]'
+                  viewMode === 'calendar' ? 'bg-[#8B5CF6] text-white shadow-xs' : 'text-[#B9AECF]'
                 }`}
               >
                 Calendar View
@@ -239,7 +238,7 @@ export const InspectionsPage: React.FC = () => {
 
             <button
               onClick={() => setShowScheduleModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg shadow-xs transition"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Schedule Inspection</span>
@@ -249,100 +248,93 @@ export const InspectionsPage: React.FC = () => {
       />
 
       {/* Filter Bar */}
-      <div className="bg-white p-3.5 rounded-xl border border-[#E2E8F0] shadow-sm flex flex-wrap items-center gap-3 text-xs">
-        <div className="flex items-center gap-1 text-[#64748B] font-semibold">
-          <Filter className="w-3.5 h-3.5 text-blue-600" />
+      <div className="bg-[#211735] p-3.5 rounded-xl border border-[#3B2D53] shadow-xs flex flex-wrap items-center gap-3 text-xs min-w-0 text-[#F5F3FF]">
+        <div className="flex items-center gap-1 text-[#B9AECF] font-semibold">
+          <Filter className="w-3.5 h-3.5 text-[#A78BFA]" />
           <span>Filters:</span>
         </div>
 
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Status:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Status:</span>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
             <option value="ALL">All Statuses</option>
             <option value="Scheduled">Scheduled</option>
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
-            <option value="Reviewed">Reviewed</option>
           </select>
         </div>
 
-        <div className="flex items-center gap-1">
-          <span className="text-[#64748B]">Type:</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#B9AECF]">Type:</span>
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            className="p-1.5 border border-[#E2E8F0] rounded-lg bg-slate-50 font-medium text-[#172033] focus:outline-none"
+            className="p-1.5 border border-[#3B2D53] rounded-lg bg-[#140E22] font-medium text-[#F5F3FF] focus:outline-none"
           >
-            <option value="ALL">All Inspection Types</option>
-            <option value="Routine">Routine</option>
-            <option value="Citizen Report Verification">Citizen Report Verification</option>
+            <option value="ALL">All Types</option>
+            <option value="Routine">Routine Visual</option>
+            <option value="Citizen Report Verification">Report Verification</option>
             <option value="Post-Severe-Weather">Post-Severe-Weather</option>
-            <option value="Structural Assessment">Structural Assessment</option>
+            <option value="Periodic Audit">Periodic Audit</option>
           </select>
         </div>
+
+        {(statusFilter !== 'ALL' || typeFilter !== 'ALL') && (
+          <button
+            onClick={() => {
+              setStatusFilter('ALL');
+              setTypeFilter('ALL');
+            }}
+            className="text-xs text-[#A78BFA] hover:underline font-semibold ml-auto"
+          >
+            Reset Filters
+          </button>
+        )}
       </div>
 
+      {/* Content Area */}
       {viewMode === 'list' ? (
         <DataTable
           columns={columns}
           data={filteredInspections}
-          searchKey={(i: Inspection) => `${i.id} ${i.roadName} ${i.assignedInspector} ${i.type}`}
-          searchPlaceholder="Search by ID, road segment, inspector..."
+          searchKey={(i: Inspection) => `${i.id} ${i.roadName} ${i.assignedInspector}`}
+          searchPlaceholder="Search inspections by task ID, road name, or inspector..."
           exportFileName="roadwatch-inspections"
           onRowClick={i => setSelectedInspection(i)}
         />
       ) : (
-        /* Calendar View Matrix */
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-            <h3 className="font-bold text-xs uppercase text-[#172033] tracking-wider">
-              October – November 2024 Inspection Schedule
-            </h3>
-            <span className="text-xs text-[#64748B]">Weekly Deployment Matrix</span>
+        /* Calendar View */
+        <div className="bg-[#211735] rounded-xl border border-[#3B2D53] shadow-xs p-5 space-y-4 min-w-0 text-[#F5F3FF]">
+          <div className="flex items-center justify-between pb-3 border-b border-[#3B2D53]">
+            <h3 className="text-sm font-bold text-[#F5F3FF]">Inspection Schedule (Current Period)</h3>
+            <span className="text-xs text-[#B9AECF]">Active Pipeline</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {['Week 43 (Oct 21–27)', 'Week 44 (Oct 28–Nov 03)', 'Week 45 (Nov 04–10)', 'Week 46 (Nov 11–17)'].map(
-              (wk, index) => {
-                const wkInspections = inspections.filter((_, i) => i % 4 === index);
-
-                return (
-                  <div key={wk} className="rounded-xl border border-[#E2E8F0] bg-slate-50/70 p-3 space-y-3">
-                    <div className="font-bold text-xs text-[#172033] border-b pb-1.5 border-slate-200">
-                      {wk}
-                    </div>
-
-                    <div className="space-y-2">
-                      {wkInspections.length === 0 ? (
-                        <div className="p-3 text-center text-[11px] text-[#94A3B8]">No tasks slated</div>
-                      ) : (
-                        wkInspections.map(item => (
-                          <div
-                            key={item.id}
-                            onClick={() => setSelectedInspection(item)}
-                            className="p-2.5 rounded-lg bg-white border border-[#E2E8F0] shadow-2xs hover:border-blue-300 cursor-pointer text-xs space-y-1 transition"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-mono text-[10px] font-bold text-blue-700">{item.id}</span>
-                              <StatusBadge status={item.status} />
-                            </div>
-                            <div className="font-semibold text-[#172033] truncate">{item.roadName}</div>
-                            <div className="text-[11px] text-[#64748B] flex items-center justify-between">
-                              <span>{item.assignedInspector.split(' ')[1]}</span>
-                              <span className="font-mono">{item.scheduledDate.substring(5)}</span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {filteredInspections.map(insp => (
+              <div
+                key={insp.id}
+                onClick={() => setSelectedInspection(insp)}
+                className="p-3.5 rounded-xl border border-[#3B2D53] bg-[#140E22] hover:bg-[#2B2042] cursor-pointer transition space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-[#A78BFA]">{insp.id}</span>
+                  <StatusBadge status={insp.status} />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-xs text-[#F5F3FF] truncate">{insp.roadName}</h4>
+                  <p className="text-[11px] text-[#B9AECF]">{insp.ward}</p>
+                </div>
+                <div className="pt-2 border-t border-[#3B2D53] flex items-center justify-between text-[11px] text-[#B9AECF]">
+                  <span>{insp.scheduledDate}</span>
+                  <span className="font-medium text-[#F5F3FF]">{insp.assignedInspector}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -358,34 +350,29 @@ export const InspectionsPage: React.FC = () => {
             <div className="flex items-center justify-between w-full">
               <button
                 onClick={() => navigate(`/map?select=${selectedInspection.segmentId}`)}
-                className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1"
+                className="px-3 py-1.5 text-xs text-[#A78BFA] font-semibold hover:underline flex items-center gap-1"
               >
-                <MapPin className="w-3.5 h-3.5" /> View Road on Map
+                <MapPin className="w-3.5 h-3.5" /> View Road
               </button>
 
               <div className="flex items-center gap-2">
                 {selectedInspection.status === 'Scheduled' && (
                   <button
                     onClick={() => handleAdvanceStatus(selectedInspection, 'In Progress')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
+                    className="px-3 py-1.5 rounded-lg bg-[#8B5CF6] text-white text-xs font-semibold hover:bg-[#7C3AED] transition"
                   >
                     Start Inspection
                   </button>
                 )}
                 {selectedInspection.status === 'In Progress' && (
                   <button
-                    onClick={() => openFindingsModal(selectedInspection)}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
+                    onClick={() => {
+                      setSelectedInspection(null);
+                      openFindingsModal(selectedInspection);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-[#8B5CF6] text-white text-xs font-semibold hover:bg-[#7C3AED] transition"
                   >
-                    Record Findings
-                  </button>
-                )}
-                {selectedInspection.status === 'Completed' && (
-                  <button
-                    onClick={() => handleAdvanceStatus(selectedInspection, 'Reviewed')}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
-                  >
-                    Approve / Review
+                    Submit Findings
                   </button>
                 )}
               </div>
@@ -394,105 +381,91 @@ export const InspectionsPage: React.FC = () => {
         }
       >
         {selectedInspection && (
-          <div className="space-y-5 text-xs">
+          <div className="space-y-4 text-xs text-[#F5F3FF]">
             <div className="flex items-center justify-between">
-              <PriorityBadge priority={selectedInspection.priority} />
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#8B5CF6]/20 font-bold text-[#C4B5FD] border border-[#8B5CF6]/30">
+                {selectedInspection.id}
+              </span>
               <StatusBadge status={selectedInspection.status} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0]">
+            <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl border border-[#3B2D53] bg-[#140E22]">
               <div>
-                <span className="text-[10px] text-[#64748B] uppercase font-bold">Assigned Inspector</span>
-                <p className="font-bold text-[#172033] mt-0.5">{selectedInspection.assignedInspector}</p>
-                <p className="text-[10px] text-[#94A3B8]">{selectedInspection.inspectorRole}</p>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Inspector</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedInspection.assignedInspector}</p>
               </div>
               <div>
-                <span className="text-[10px] text-[#64748B] uppercase font-bold">Target Audit Date</span>
-                <p className="font-bold text-[#172033] mt-0.5">{selectedInspection.scheduledDate}</p>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Role</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedInspection.inspectorRole}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Target Date</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedInspection.scheduledDate}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Inspection Type</span>
+                <p className="font-bold text-[#F5F3FF]">{selectedInspection.type}</p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] space-y-1">
-              <span className="text-[10px] uppercase font-bold text-[#64748B]">Assignment Instructions</span>
-              <p className="text-xs text-[#172033] leading-relaxed">{selectedInspection.notes}</p>
+            <div className="p-3.5 rounded-xl bg-[#140E22] border border-[#3B2D53] space-y-1">
+              <span className="text-[10px] uppercase font-bold text-[#B9AECF]">Instructions &amp; Brief</span>
+              <p className="text-xs text-[#F5F3FF] leading-relaxed">{selectedInspection.notes}</p>
             </div>
 
-            {/* Findings if recorded */}
-            {selectedInspection.findings ? (
-              <div className="space-y-3 pt-2">
-                <h4 className="font-bold text-[#172033] uppercase text-[10px] tracking-wider text-emerald-800">
-                  Recorded Ground-Truth Findings
-                </h4>
-                <div className="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-[10px] text-emerald-800 font-bold uppercase">Observed Condition:</span>
-                      <ConditionBadge condition={selectedInspection.findings.observedCondition} />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-emerald-800 font-bold uppercase">Estimated PCI:</span>
-                      <p className="font-bold text-emerald-950">{selectedInspection.findings.estimatedPci} / 100</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-emerald-800 font-bold uppercase">Structural Integrity:</span>
-                      <p className="font-bold text-emerald-950">{selectedInspection.findings.structuralIntegrityScore}%</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-emerald-800 font-bold uppercase">Drainage Condition:</span>
-                      <p className="font-bold text-emerald-950">{selectedInspection.findings.drainageCondition}</p>
-                    </div>
-                  </div>
+            {/* Findings Box if available */}
+            {selectedInspection.findings && (
+              <div className="p-4 rounded-xl border border-[#34D399]/40 bg-[#34D399]/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#34D399] uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                    <ClipboardList className="w-3.5 h-3.5" /> Recorded Ground-Truth Findings
+                  </span>
+                  <ConditionBadge condition={selectedInspection.findings.observedCondition} />
+                </div>
 
+                <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <span className="text-[10px] text-emerald-800 font-bold uppercase block mb-1">
-                      Summary Evaluation:
-                    </span>
-                    <p className="text-[11px] text-emerald-900 leading-snug">
-                      {selectedInspection.findings.summaryNotes}
-                    </p>
+                    <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Audited PCI</span>
+                    <p className="font-extrabold text-[#34D399]">{selectedInspection.findings.estimatedPci} / 100</p>
                   </div>
-
                   <div>
-                    <span className="text-[10px] text-emerald-800 font-bold uppercase block mb-1">
-                      Recommended Engineering Actions:
-                    </span>
-                    <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-emerald-950">
-                      {selectedInspection.findings.recommendedActions.map((act, i) => (
-                        <li key={i}>{act}</li>
-                      ))}
-                    </ul>
+                    <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Integrity</span>
+                    <p className="font-extrabold text-[#F5F3FF]">{selectedInspection.findings.structuralIntegrityScore}%</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Distress Spread</span>
+                    <p className="font-extrabold text-[#F5F3FF]">{selectedInspection.findings.damageSpreadPercentage}%</p>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl border border-dashed border-slate-300 text-center text-[#64748B]">
-                <ClipboardList className="w-6 h-6 mx-auto mb-1 text-slate-400" />
-                <p className="font-medium">No findings submitted yet</p>
-                <p className="text-[11px] text-[#94A3B8]">Audit will update road segment condition once completed</p>
+
+                <div>
+                  <span className="text-[10px] text-[#B9AECF] uppercase font-bold">Summary Notes</span>
+                  <p className="text-xs text-[#F5F3FF] mt-0.5 leading-relaxed">{selectedInspection.findings.summaryNotes}</p>
+                </div>
               </div>
             )}
           </div>
         )}
       </DetailDrawer>
 
-      {/* Schedule Inspection Modal */}
+      {/* Schedule Modal */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] max-w-lg w-full p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
-              <h3 className="text-sm font-bold text-[#172033]">Schedule Field Inspection</h3>
-              <button onClick={() => setShowScheduleModal(false)} className="text-[#94A3B8] hover:text-[#172033]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[#211735] rounded-xl shadow-2xl border border-[#3B2D53] max-w-lg w-full p-6 text-xs space-y-4 text-[#F5F3FF]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#3B2D53]">
+              <h3 className="text-sm font-bold text-[#F5F3FF]">Schedule Field Inspection</h3>
+              <button onClick={() => setShowScheduleModal(false)} className="text-[#B9AECF] hover:text-[#F5F3FF]">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleScheduleSubmit} className="space-y-3.5">
               <div>
-                <label className="block font-semibold text-[#172033] mb-1">Target Road Segment</label>
+                <label className="block font-semibold text-[#F5F3FF] mb-1">Target Road Segment</label>
                 <select
                   value={formSegmentId}
                   onChange={e => setFormSegmentId(e.target.value)}
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                 >
                   {roads.map(r => (
                     <option key={r.id} value={r.id}>
@@ -504,68 +477,67 @@ export const InspectionsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Assigned Inspector</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Inspector</label>
                   <select
                     value={formInspector}
                     onChange={e => setFormInspector(e.target.value)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Er. Rajesh Verma">Er. Rajesh Verma (Senior Pavement)</option>
-                    <option value="Er. Meena Nair">Er. Meena Nair (Hydrology Specialist)</option>
-                    <option value="Er. David Wilson">Er. David Wilson (Safety Auditor)</option>
-                    <option value="Er. Sunita Patel">Er. Sunita Patel (Asset Surveyor)</option>
+                    <option value="Er. Meena Nair">Er. Meena Nair (Hydrology)</option>
+                    <option value="Er. Vikram Singh">Er. Vikram Singh (Structural)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Scheduled Date</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Target Date</label>
                   <input
                     type="date"
                     required
                     value={formDate}
                     onChange={e => setFormDate(e.target.value)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-[#172033] mb-1">Inspection Type</label>
+                <label className="block font-semibold text-[#F5F3FF] mb-1">Inspection Type</label>
                 <select
                   value={formType}
-                  onChange={e => setFormType(e.target.value as InspectionType)}
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                  onChange={e => setFormType(e.target.value as any)}
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                 >
-                  <option value="Routine">Routine Visual Survey</option>
-                  <option value="Citizen Report Verification">Citizen Report Verification</option>
-                  <option value="Post-Severe-Weather">Post-Severe-Weather Flood Survey</option>
-                  <option value="Structural Assessment">Structural Core Assessment</option>
+                  <option value="Routine">Routine Visual</option>
+                  <option value="Citizen Report Verification">Report Verification</option>
+                  <option value="Post-Severe-Weather">Post-Severe-Weather</option>
+                  <option value="Periodic Audit">Periodic Audit</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-semibold text-[#172033] mb-1">Briefing &amp; Scope</label>
+                <label className="block font-semibold text-[#F5F3FF] mb-1">Special Instructions</label>
                 <textarea
                   rows={3}
                   value={formNotes}
                   onChange={e => setFormNotes(e.target.value)}
-                  placeholder="Outline test procedures (e.g. penetrometer, visual distress density)..."
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  placeholder="Focus points for field audit..."
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#3B2D53]">
                 <button
                   type="button"
                   onClick={() => setShowScheduleModal(false)}
-                  className="px-3.5 py-1.5 border border-[#E2E8F0] rounded-lg font-medium text-[#64748B] hover:bg-slate-50"
+                  className="px-3.5 py-1.5 border border-[#3B2D53] rounded-lg font-medium text-[#B9AECF] hover:bg-[#2B2042] transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs"
+                  className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold rounded-lg shadow-xs transition"
                 >
-                  Schedule Task
+                  Confirm Schedule
                 </button>
               </div>
             </form>
@@ -575,16 +547,16 @@ export const InspectionsPage: React.FC = () => {
 
       {/* Record Findings Modal */}
       {showFindingsModal && activeInspectionForFindings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] max-w-lg w-full p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[#211735] rounded-xl shadow-2xl border border-[#3B2D53] max-w-lg w-full p-6 text-xs space-y-4 text-[#F5F3FF]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#3B2D53]">
               <div>
-                <h3 className="text-sm font-bold text-[#172033]">
-                  Record Field Audit Findings: {activeInspectionForFindings.id}
-                </h3>
-                <p className="text-[11px] text-[#64748B]">{activeInspectionForFindings.roadName}</p>
+                <h3 className="text-sm font-bold text-[#F5F3FF]">Record Inspection Findings</h3>
+                <p className="text-[11px] text-[#B9AECF]">
+                  Corridor: <strong>{activeInspectionForFindings.roadName} ({activeInspectionForFindings.id})</strong>
+                </p>
               </div>
-              <button onClick={() => setShowFindingsModal(false)} className="text-[#94A3B8] hover:text-[#172033]">
+              <button onClick={() => setShowFindingsModal(false)} className="text-[#B9AECF] hover:text-[#F5F3FF]">
                 ✕
               </button>
             </div>
@@ -592,11 +564,11 @@ export const InspectionsPage: React.FC = () => {
             <form onSubmit={handleFindingsSubmit} className="space-y-3.5">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Observed Road Condition</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Observed Condition</label>
                   <select
                     value={findingCondition}
                     onChange={e => setFindingCondition(e.target.value as RoadCondition)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   >
                     <option value="Good">Good</option>
                     <option value="Fair">Fair</option>
@@ -605,7 +577,7 @@ export const InspectionsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Audited PCI (0–100)</label>
+                  <label className="block font-semibold text-[#F5F3FF] mb-1">Estimated PCI (0–100)</label>
                   <input
                     type="number"
                     min="0"
@@ -613,75 +585,36 @@ export const InspectionsPage: React.FC = () => {
                     required
                     value={findingPci}
                     onChange={e => setFindingPci(e.target.value)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                    className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] focus:border-[#A78BFA] focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Structural Integrity (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    required
-                    value={findingIntegrity}
-                    onChange={e => setFindingIntegrity(e.target.value)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#172033] mb-1">Drainage State</label>
-                  <select
-                    value={findingDrainage}
-                    onChange={e => setFindingDrainage(e.target.value as any)}
-                    className="w-full p-2 border border-[#E2E8F0] rounded-lg bg-white"
-                  >
-                    <option value="Adequate">Adequate</option>
-                    <option value="Partially Blocked">Partially Blocked</option>
-                    <option value="Severely Compromised">Severely Compromised</option>
-                  </select>
-                </div>
-              </div>
-
               <div>
-                <label className="block font-semibold text-[#172033] mb-1">Recommended Engineering Actions</label>
-                <input
-                  type="text"
-                  required
-                  value={findingActions}
-                  onChange={e => setFindingActions(e.target.value)}
-                  placeholder="e.g. Deep milling, asphalt overlay, roadside drainage clearing"
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#172033] mb-1">Summary Findings &amp; Core Analysis</label>
+                <label className="block font-semibold text-[#F5F3FF] mb-1">Summary Findings</label>
                 <textarea
                   rows={3}
                   required
                   value={findingSummary}
                   onChange={e => setFindingSummary(e.target.value)}
-                  placeholder="Document sub-base conditions, moisture saturation, crack width, and vehicle rideability..."
-                  className="w-full p-2 border border-[#E2E8F0] rounded-lg"
+                  placeholder="Describe crack severity, rutting measurements, and repair advice..."
+                  className="w-full p-2 border border-[#3B2D53] rounded-lg bg-[#140E22] text-[#F5F3FF] placeholder-[#B9AECF]/50 focus:border-[#A78BFA] focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#3B2D53]">
                 <button
                   type="button"
                   onClick={() => setShowFindingsModal(false)}
-                  className="px-3.5 py-1.5 border border-[#E2E8F0] rounded-lg font-medium text-[#64748B] hover:bg-slate-50"
+                  className="px-3.5 py-1.5 border border-[#3B2D53] rounded-lg font-medium text-[#B9AECF] hover:bg-[#2B2042] transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs"
+                  className="px-4 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold rounded-lg shadow-xs transition"
                 >
-                  Save Findings &amp; Complete Task
+                  Save Findings
                 </button>
               </div>
             </form>
