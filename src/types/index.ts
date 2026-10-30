@@ -14,19 +14,21 @@ export type IssueCategory =
 
 export type ReportSeverity = 'Low' | 'Medium' | 'High' | 'Critical';
 export type ReportStatus = 
+  | 'New'
   | 'Submitted' 
-  | 'Reported'
+  | 'Reported' 
   | 'Under Review' 
-  | 'In Progress'
+  | 'In Progress' 
   | 'Verified' 
   | 'Inspection Scheduled' 
   | 'Maintenance Planned' 
-  | 'Resolved';
+  | 'Resolved'
+  | 'Rejected';
 
-export type InspectionStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Reviewed';
+export type InspectionStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Reviewed' | 'Cancelled';
 export type InspectionType = 'Routine' | 'Periodic Audit' | 'Post-Severe-Weather' | 'Citizen Report Verification' | 'Structural Assessment';
 
-export type MaintenanceStatus = 'Proposed' | 'Under Review' | 'Approved' | 'Scheduled' | 'In Progress' | 'Completed';
+export type MaintenanceStatus = 'Pending' | 'Approved' | 'Scheduled' | 'In Progress' | 'Completed' | 'On Hold' | 'Proposed' | 'Under Review';
 export type MaintenanceType = 'Pothole Patching' | 'Patching' | 'Overlay' | 'Resurfacing' | 'Full Reconstruction' | 'Drainage Rectification' | 'Crack Sealing';
 
 export interface RoadSegment {
@@ -54,16 +56,19 @@ export interface RoadSegment {
 }
 
 export interface IssueReport {
-  id: string; // e.g. "REP-2024-089"
+  id: string; // e.g. "REP-2024-089" or "RW-2026-1001"
+  reportCode?: string;
   segmentId: string;
   roadName: string;
-  category: IssueCategory;
+  area?: string;
+  category: IssueCategory | string;
   severity: ReportSeverity;
-  source: 'Citizen App' | 'Field Officer' | 'Automated Sensor' | 'Municipal Patrol' | 'Patrol Vehicle' | 'Routine Survey';
+  source: string;
   reportDate: string;
   status: ReportStatus;
   priorityScore?: number;
   priorityLevel?: PriorityLevel;
+  priority?: PriorityLevel;
   urgencyScore?: number;
   assignedTeam?: string;
   description: string;
@@ -72,8 +77,11 @@ export interface IssueReport {
   reporterName?: string;
   reporterContact?: string;
   verifiedBy?: string;
+  verificationStatus?: 'Unverified' | 'Verified' | 'Rejected' | string;
+  rejectionReason?: string;
+  attachments?: any[];
   statusHistory: {
-    status: ReportStatus;
+    status: ReportStatus | string;
     timestamp: string;
     updatedBy: string;
     notes?: string;
@@ -83,15 +91,18 @@ export interface IssueReport {
 export interface Inspection {
   id: string; // e.g. "INSP-2024-042"
   segmentId: string;
+  reportId?: string;
   roadName: string;
   ward: string;
   assignedInspector: string;
   inspectorRole: string;
   scheduledDate: string;
-  type: InspectionType;
+  type: InspectionType | string;
   priority: PriorityLevel;
-  status: InspectionStatus;
+  status: InspectionStatus | string;
+  verifiedCondition?: RoadCondition | string;
   notes: string;
+  photos?: string[];
   findings?: {
     observedCondition: RoadCondition;
     estimatedPci: number;
@@ -141,37 +152,48 @@ export interface RoadPrediction {
 export interface MaintenancePlan {
   id: string; // e.g. "MNT-2024-118"
   segmentId: string;
+  reportId?: string;
   roadName: string;
   ward: string;
   title: string;
-  maintenanceType: MaintenanceType;
+  description?: string;
+  maintenanceType: MaintenanceType | string;
   priority: PriorityLevel;
-  status: MaintenanceStatus;
+  status: MaintenanceStatus | string;
+  repairStatus?: string;
+  inspectionStatus?: string;
   assignedCrew: string;
   crewLeader: string;
-  estimatedCost: number; // in USD or INR equivalent
+  estimatedCost: number;
   actualCost?: number;
   startDate: string;
   targetCompletionDate: string;
   actualCompletionDate?: string;
   requiredResources: string[];
   justification: string;
+  notes?: string;
   completionNotes?: string;
-  budgetStatus: 'Within Allocation' | 'Requires Approval' | 'Contingency Draw';
+  beforePhotos?: string[];
+  afterPhotos?: string[];
+  budgetStatus: 'Within Allocation' | 'Requires Approval' | 'Contingency Draw' | 'Under Budget' | 'Exceeded Estimate' | string;
 }
 
 export interface TeamMember {
   id: string;
   name: string;
   email: string;
-  role: 'Municipal Administrator' | 'Chief Road Engineer' | 'Field Inspector' | 'Data Analyst' | 'Maintenance Supervisor';
+  role: 'Municipal Authority Admin' | 'Municipal Administrator' | 'Chief Road Engineer' | 'Field Inspector' | 'Data Analyst' | 'Maintenance Supervisor' | string;
   department: string;
   avatarUrl?: string;
   phone: string;
-  activeAssignmentsCount: number;
-  completedTasksCount: number;
-  status: 'Active' | 'On Leave' | 'In Field';
-  wardCoverage: string[];
+  activeAssignmentsCount?: number;
+  completedTasksCount?: number;
+  completedInspectionsCount?: number;
+  activeWorkOrdersCount?: number;
+  assignedWard?: string;
+  joinedDate?: string;
+  status: 'Active' | 'On Leave' | 'In Field' | string;
+  wardCoverage?: string[];
 }
 
 export interface ModelMetric {

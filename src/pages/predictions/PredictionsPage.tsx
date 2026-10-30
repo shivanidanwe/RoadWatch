@@ -180,12 +180,12 @@ export const PredictionsPage: React.FC = () => {
   return (
     <div className="space-y-6 min-w-0">
       <PageHeader
-        title="Predictive Risk Assessment &amp; Recommendation Engine"
-        subtitle="Machine learning model predictions estimating road degradation risk and explainable maintenance rankings."
+        title="Road Priority Recommendation Engine"
+        subtitle="Transparent multi-factor scoring engine evaluating damage severity, report density, traffic intensity, weather impact, and repair history."
         badge={
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#8B5CF6]/15 text-[#C4B5FD] border border-[#8B5CF6]/30">
             <Cpu className="w-3.5 h-3.5 text-[#A78BFA]" />
-            Model: {modelStatus.version}
+            Rule-Based Urgency Engine (0–100)
           </span>
         }
         actions={

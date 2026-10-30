@@ -56,8 +56,10 @@ interface AppContextType {
     reporterContact?: string;
     source?: string;
     segmentId?: string;
+    area?: string;
   }) => Promise<IssueReport>;
   updateReport: (id: string, updates: Partial<IssueReport>) => Promise<IssueReport>;
+  verifyReport: (id: string, status: 'Verified' | 'Rejected', notes?: string, rejectionReason?: string) => Promise<any>;
   createInspection: (data: Omit<Inspection, 'id'>) => Promise<Inspection>;
   updateInspection: (id: string, updates: Partial<Inspection>) => Promise<Inspection>;
   createMaintenance: (data: Omit<MaintenancePlan, 'id'>) => Promise<MaintenancePlan>;
@@ -216,6 +218,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return res;
   };
 
+  const verifyReport = async (id: string, status: 'Verified' | 'Rejected', notes?: string, rejectionReason?: string) => {
+    const res = await apiService.verifyReport(id, status, notes, rejectionReason);
+    await refreshData();
+    addToast(status === 'Verified' ? 'success' : 'warning', `Report ${status}`, `Complaint ${id} was marked as ${status}.`);
+    return res;
+  };
+
   const createInspection = async (data: Omit<Inspection, 'id'>) => {
     const res = await apiService.createInspection(data);
     await refreshData();
@@ -283,6 +292,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateRoad,
         createReport,
         updateReport,
+        verifyReport,
         createInspection,
         updateInspection,
         createMaintenance,

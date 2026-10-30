@@ -175,7 +175,7 @@ export const TeamPage: React.FC = () => {
               <div className="pt-2">
                 <span className="text-[10px] uppercase font-bold text-[#B9AECF] block mb-1">Ward Coverage</span>
                 <div className="flex flex-wrap gap-1">
-                  {member.wardCoverage.map((w, i) => (
+                  {(member.wardCoverage || []).map((w, i) => (
                     <span key={i} className="text-[10px] px-2 py-0.5 bg-[#140E22] rounded text-[#B9AECF] border border-[#3B2D53]">
                       {w}
                     </span>

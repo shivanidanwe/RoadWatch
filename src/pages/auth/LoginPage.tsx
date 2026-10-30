@@ -8,8 +8,8 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { addToast, refreshData } = useApp();
 
-  const [email, setEmail] = useState('anand.rao@roadwatch.gov');
-  const [password, setPassword] = useState('••••••••••••');
+  const [email, setEmail] = useState('admin@roadwatch.gov');
+  const [password, setPassword] = useState('Admin@RoadWatch2026!');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,20 +21,15 @@ export const LoginPage: React.FC = () => {
     setErrorMsg('');
 
     try {
-      await apiService.login(email, password);
+      await apiService.login(email.trim(), password);
       await refreshData();
-      addToast('success', 'Authenticated', 'Welcome back to RoadWatch intelligence portal.');
+      addToast('success', 'Authenticated', 'Welcome to RoadWatch Municipal Authority Admin Portal.');
       navigate('/dashboard');
     } catch (err: any) {
       setErrorMsg(err.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuickDemoUser = (userEmail: string) => {
-    setEmail(userEmail);
-    setPassword('demo-municipal-access');
   };
 
   return (
@@ -167,56 +162,34 @@ export const LoginPage: React.FC = () => {
                 disabled={isLoading}
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-semibold rounded-lg text-white bg-[#8B5CF6] hover:bg-[#7C3AED] shadow-xs transition disabled:opacity-50"
               >
-                {isLoading ? 'Authenticating...' : 'Sign In to RoadWatch'}
+                {isLoading ? 'Authenticating...' : 'Sign In as Municipal Authority Admin'}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
 
-            {/* Quick Demo Sign In Roles */}
+            {/* Public Citizen Reporting Access (Prompt Section 3 & 4) */}
             <div className="mt-6 pt-5 border-t border-[#3B2D53]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#B9AECF] block mb-2">
-                Quick Demo Role Selector:
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] block mb-2">
+                Public Civic Services:
               </span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoUser('anand.rao@roadwatch.gov')}
-                  className="p-2 text-left border border-[#3B2D53] rounded-lg bg-[#140E22] hover:bg-[#2B2042] hover:border-[#8B5CF6]/50 transition min-w-0"
-                >
-                  <strong className="block text-[#F5F3FF] text-xs truncate">Dr. Anand Rao</strong>
-                  <span className="text-[#A78BFA] text-[10px] font-medium truncate block">Chief Engineer</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoUser('rajesh.verma@roadwatch.gov')}
-                  className="p-2 text-left border border-[#3B2D53] rounded-lg bg-[#140E22] hover:bg-[#2B2042] hover:border-[#8B5CF6]/50 transition min-w-0"
-                >
-                  <strong className="block text-[#F5F3FF] text-xs truncate">Er. Rajesh Verma</strong>
-                  <span className="text-[#A78BFA] text-[10px] font-medium truncate block">Field Inspector</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoUser('ramesh.nair@roadwatch.gov')}
-                  className="p-2 text-left border border-[#3B2D53] rounded-lg bg-[#140E22] hover:bg-[#2B2042] hover:border-[#8B5CF6]/50 transition min-w-0"
-                >
-                  <strong className="block text-[#F5F3FF] text-xs truncate">Eng. Ramesh Nair</strong>
-                  <span className="text-[#A78BFA] text-[10px] font-medium truncate block">Supervisor</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoUser('sunita.patel@roadwatch.gov')}
-                  className="p-2 text-left border border-[#3B2D53] rounded-lg bg-[#140E22] hover:bg-[#2B2042] hover:border-[#8B5CF6]/50 transition min-w-0"
-                >
-                  <strong className="block text-[#F5F3FF] text-xs truncate">Dr. Sunita Patel</strong>
-                  <span className="text-[#A78BFA] text-[10px] font-medium truncate block">Data Analyst</span>
-                </button>
-              </div>
+              <Link
+                to="/report"
+                className="flex items-center justify-between p-3 border border-[#8B5CF6]/40 rounded-xl bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 transition group"
+              >
+                <div>
+                  <strong className="block text-[#F5F3FF] text-xs font-semibold">Citizen Road Damage Report</strong>
+                  <span className="text-[11px] text-[#B9AECF]">Report potholes, cracks, or surface failures without login</span>
+                </div>
+                <div className="w-7 h-7 rounded-lg bg-[#8B5CF6] text-white flex items-center justify-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </Link>
             </div>
           </div>
 
           <div className="mt-4 text-center">
             <span className="text-[10px] text-[#B9AECF]/60">
-              Authorized municipal government access only.
+              Only authorized Municipal Authority Admin users may access dashboard operations.
             </span>
           </div>
         </div>
