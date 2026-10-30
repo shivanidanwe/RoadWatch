@@ -6,9 +6,11 @@ from typing import Dict, Any
 BASE_DIR = Path(__file__).resolve().parent.parent
 ARTIFACTS_DIR = BASE_DIR / "artifacts"
 DATA_DIR = BASE_DIR / "data"
+UPLOADS_DIR = BASE_DIR / "uploads"
 
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 class ScoringWeights(BaseModel):
     damage_severity: float = Field(default=0.30, ge=0.0, le=100.0, description="Reported damage severity weight")
@@ -56,6 +58,14 @@ class AppConfig:
     MODEL_ARTIFACT_PATH: Path = ARTIFACTS_DIR / "model_v2.4.joblib"
     MODEL_METADATA_PATH: Path = ARTIFACTS_DIR / "model_metadata.json"
     MODEL_METRICS_PATH: Path = ARTIFACTS_DIR / "metrics.json"
+    UPLOADS_DIR: Path = UPLOADS_DIR
+
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "roadwatch-municipal-secret-key-2026")
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
+    INITIAL_ADMIN_EMAIL: str = os.getenv("INITIAL_ADMIN_EMAIL", "admin@roadwatch.gov")
+    INITIAL_ADMIN_PASSWORD: str = os.getenv("INITIAL_ADMIN_PASSWORD", "Admin@RoadWatch2026!")
+    INITIAL_ADMIN_NAME: str = os.getenv("INITIAL_ADMIN_NAME", "Municipal Authority Admin")
 
     DEFAULT_WEIGHTS = ScoringWeights()
     DEFAULT_THRESHOLDS = RiskThresholds()

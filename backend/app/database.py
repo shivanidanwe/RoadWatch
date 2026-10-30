@@ -217,25 +217,117 @@ class Database:
             );
             """)
 
+            # 9. Admin Users Table (Section 3: Only One Authenticated Role)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS admin_users (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                name TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'Municipal Authority Admin',
+                created_at TEXT NOT NULL,
+                last_login TEXT
+            );
+            """)
+
+            # 10. Report Attachments Table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS report_attachments (
+                id TEXT PRIMARY KEY,
+                report_id TEXT NOT NULL,
+                file_name TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                file_type TEXT,
+                file_size INTEGER,
+                uploaded_at TEXT NOT NULL
+            );
+            """)
+
             # Indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_roads_priority ON road_segments(priority);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_roads_ward ON road_segments(ward);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_reports_segment ON issue_reports(segment_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_predictions_score ON road_predictions(urgency_score DESC);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance_records(repair_status);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_admin_email ON admin_users(email);")
 
             # Column migrations for existing SQLite databases
             if not self.is_postgres:
+                # issue_reports migrations
                 cursor.execute("PRAGMA table_info(issue_reports)")
                 existing_cols = [r[1] for r in cursor.fetchall()]
                 if "report_code" not in existing_cols:
                     cursor.execute("ALTER TABLE issue_reports ADD COLUMN report_code TEXT")
+                if "area" not in existing_cols:
+                    cursor.execute("ALTER TABLE issue_reports ADD COLUMN area TEXT")
                 if "priority_score" not in existing_cols:
                     cursor.execute("ALTER TABLE issue_reports ADD COLUMN priority_score REAL DEFAULT 0")
                 if "priority_level" not in existing_cols:
                     cursor.execute("ALTER TABLE issue_reports ADD COLUMN priority_level TEXT DEFAULT 'Medium'")
+                if "verification_status" not in existing_cols:
+                    cursor.execute("ALTER TABLE issue_reports ADD COLUMN verification_status TEXT DEFAULT 'Unverified'")
+                if "rejection_reason" not in existing_cols:
+                    cursor.execute("ALTER TABLE issue_reports ADD COLUMN rejection_reason TEXT")
                 if "updated_at" not in existing_cols:
                     cursor.execute("ALTER TABLE issue_reports ADD COLUMN updated_at TEXT")
+
+                # inspections migrations
+                cursor.execute("PRAGMA table_info(inspections)")
+                insp_cols = [r[1] for r in cursor.fetchall()]
+                if "report_id" not in insp_cols:
+                    cursor.execute("ALTER TABLE inspections ADD COLUMN report_id TEXT")
+                if "verified_condition" not in insp_cols:
+                    cursor.execute("ALTER TABLE inspections ADD COLUMN verified_condition TEXT")
+                if "photos_json" not in insp_cols:
+                    cursor.execute("ALTER TABLE inspections ADD COLUMN photos_json TEXT")
+                if "updated_at" not in insp_cols:
+                    cursor.execute("ALTER TABLE inspections ADD COLUMN updated_at TEXT")
+
+                # maintenance_records migrations
+                cursor.execute("PRAGMA table_info(maintenance_records)")
+                maint_cols = [r[1] for r in cursor.fetchall()]
+                if "description" not in maint_cols:
+                    cursor.execute("ALTER TABLE maintenance_records ADD COLUMN description TEXT")
+                if "actual_cost" not in maint_cols:
+                    cursor.execute("ALTER TABLE maintenance_records ADD COLUMN actual_cost REAL DEFAULT 0")
+                if "before_photos_json" not in maint_cols:
+                    cursor.execute("ALTER TABLE maintenance_records ADD COLUMN before_photos_json TEXT")
+                if "after_photos_json" not in maint_cols:
+                    cursor.execute("ALTER TABLE maintenance_records ADD COLUMN after_photos_json TEXT")
+
+            # Seed default admin user if none exists
+            cursor.execute("SELECT COUNT(*) as cnt FROM admin_users;")
+            row = cursor.fetchone()
+            admin_cnt = row["cnt"] if isinstance(row, dict) or hasattr(row, "__getitem__") else row[0]
+            if admin_cnt == 0:
+                from backend.app.auth.security import hash_password
+                pw_hash, salt = hash_password(config.INITIAL_ADMIN_PASSWORD)
+                now_str = datetime.now().isoformat()
+                cursor.execute("""
+                INSERT INTO admin_users (
+                    id, email, password_hash, salt, name, role, created_at, last_login
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    "USR-ADMIN-01",
+                    config.INITIAL_ADMIN_EMAIL.lower(),
+                    pw_hash,
+                    salt,
+                    config.INITIAL_ADMIN_NAME,
+                    "Municipal Authority Admin",
+                    now_str,
+                    now_str
+                ))
+                cursor.execute("""
+                INSERT INTO audit_logs (id, timestamp, user, action, details)
+                VALUES (?, ?, ?, ?, ?)
+                """, (
+                    f"LOG-INIT-{int(datetime.now().timestamp())}",
+                    now_str,
+                    "System",
+                    "ADMIN_INITIALIZED",
+                    f"Initial Municipal Authority Admin provisioned: {config.INITIAL_ADMIN_EMAIL}"
+                ))
 
             # Insert default active scoring configuration if not exists
             cursor.execute("SELECT COUNT(*) as cnt FROM scoring_configs;")

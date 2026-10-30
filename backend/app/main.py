@@ -19,7 +19,11 @@ from backend.app.api.routes.reports import router as reports_router
 from backend.app.api.routes.inspections import router as inspections_router
 from backend.app.api.routes.maintenance import router as maintenance_router
 from backend.app.api.routes.dashboard import router as dashboard_router
+from backend.app.api.routes.analytics import router as analytics_router
+from backend.app.api.routes.auth import router as auth_router
+from backend.app.api.routes.public_reports import router as public_reports_router
 from backend.app.api.routes.seed import router as seed_router
+from fastapi.staticfiles import StaticFiles
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("roadwatch")
@@ -105,6 +109,8 @@ def root():
     }
 
 @app.get("/health", tags=["Health"])
+@app.get("/api/health", tags=["Health"])
+@app.get("/api/v1/health", tags=["Health"])
 def health_check():
     return {
         "status": "healthy",
@@ -112,14 +118,24 @@ def health_check():
         "database": True
     }
 
-# Include API routers under /api and /api/v1 for compatibility
-for prefix in ["/api", "/api/v1"]:
+# Mount uploads directory for photographs
+config.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(config.UPLOADS_DIR)), name="uploads")
+
+# Include API routers
+# Public & Auth routers
+app.include_router(auth_router, prefix="/api")
+app.include_router(public_reports_router, prefix="/api")
+
+# Core module routers under /api, /api/admin, and /api/v1 for unified access
+for prefix in ["/api", "/api/admin", "/api/v1"]:
     app.include_router(dashboard_router, prefix=prefix)
     app.include_router(reports_router, prefix=prefix)
     app.include_router(roads_router, prefix=prefix)
     app.include_router(recommendations_router, prefix=prefix)
     app.include_router(inspections_router, prefix=prefix)
     app.include_router(maintenance_router, prefix=prefix)
+    app.include_router(analytics_router, prefix=prefix)
     app.include_router(predictions_router, prefix=prefix)
     app.include_router(model_router, prefix=prefix)
     app.include_router(scoring_router, prefix=prefix)

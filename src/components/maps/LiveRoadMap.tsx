@@ -75,11 +75,19 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
   // Filters
   const [filterPriority, setFilterPriority] = useState<string>('ALL');
   const [filterCondition, setFilterCondition] = useState<string>('ALL');
+  const [filterReportSeverity, setFilterReportSeverity] = useState<string>('ALL');
+  const [filterReportStatus, setFilterReportStatus] = useState<string>('ALL');
 
   // Filtered lists
   const filteredRoads = roads.filter(r => {
     if (filterPriority !== 'ALL' && r.priority !== filterPriority) return false;
     if (filterCondition !== 'ALL' && r.currentCondition !== filterCondition) return false;
+    return true;
+  });
+
+  const filteredReports = reports.filter(r => {
+    if (filterReportSeverity !== 'ALL' && r.severity !== filterReportSeverity) return false;
+    if (filterReportStatus !== 'ALL' && r.status !== filterReportStatus) return false;
     return true;
   });
 
@@ -130,7 +138,7 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
 
     renderRoadLines(map);
     renderMarkers(map);
-  }, [filteredRoads, reports, layers]);
+  }, [filteredRoads, filteredReports, layers]);
 
   const renderRoadLines = (map: maplibregl.Map) => {
     if (map.getSource('roads-lines')) {
@@ -271,34 +279,58 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
       });
     }
 
-    // Citizen & Patrol Issue Report Markers
+    // Citizen & Municipal Road Damage Report Markers (Section 5.C)
+    // Marker Colors: Red (Critical), Orange (High), Yellow (Medium), Green (Low)
     if (layers.reports) {
-      reports.forEach(rep => {
+      filteredReports.forEach(rep => {
+        const severityColors: Record<string, string> = {
+          Critical: '#EF4444', // Red: Critical
+          High: '#F97316',     // Orange: High
+          Medium: '#FBBF24',   // Yellow: Medium
+          Low: '#10B981',      // Green: Low
+        };
+        const markerColor = severityColors[rep.severity] || '#F97316';
+
         const el = document.createElement('div');
         el.className = 'report-marker cursor-pointer transition-transform hover:scale-125';
         el.innerHTML = `
           <div style="
-            background-color: #8B5CF6;
+            background-color: ${markerColor};
             color: #FFFFFF;
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
-            border: 2px solid #140E22;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #FFFFFF;
             box-shadow: 0 4px 10px rgba(0,0,0,0.6);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 11px;
+            font-weight: bold;
           ">
-            ⚠️
+            !
           </div>
         `;
 
-        const popup = new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(`
-          <div style="font-family: inherit; font-size: 12px; color: #F5F3FF; background-color: #211735; padding: 8px; border-radius: 8px; border: 1px solid #3B2D53;">
-            <div style="font-weight: 700; color: #C4B5FD;">Report: ${rep.category}</div>
-            <div style="color: #B9AECF; font-size: 11px;">${rep.roadName}</div>
-            <div style="margin-top: 4px;">Severity: <b>${rep.severity}</b> | Status: <b>${rep.status}</b></div>
+        const complaintCode = rep.reportCode || rep.id;
+        const repArea = rep.area || (rep as any).ward || 'Municipal Ward';
+
+        // When clicking a marker: display Road name, Area, Damage type, Severity, Complaint ID, Report date, Current status
+        const popup = new maplibregl.Popup({ offset: 15, closeButton: true }).setHTML(`
+          <div style="font-family: inherit; font-size: 12px; color: #F5F3FF; background-color: #211735; padding: 10px; border-radius: 10px; border: 1px solid #3B2D53; min-width: 210px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #3B2D53; padding-bottom: 4px;">
+              <span style="font-family: monospace; font-size: 11px; font-weight: 700; color: #A78BFA;">${complaintCode}</span>
+              <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background-color: ${markerColor}25; color: ${markerColor}; border: 1px solid ${markerColor}50;">
+                ${rep.severity}
+              </span>
+            </div>
+            <div style="font-weight: 700; font-size: 13px; color: #FFFFFF; margin-bottom: 2px;">${rep.roadName}</div>
+            <div style="color: #B9AECF; font-size: 11px; margin-bottom: 6px;">Area: <b style="color: #F5F3FF;">${repArea}</b></div>
+            <div style="border-top: 1px solid #3B2D53; padding-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
+              <div>Damage: <b style="color: #F5F3FF;">${rep.category}</b></div>
+              <div>Status: <b style="color: #A78BFA;">${rep.status}</b></div>
+              <div style="grid-column: span 2; color: #9CA3AF; font-size: 10px; margin-top: 2px;">Reported: ${rep.reportDate}</div>
+            </div>
           </div>
         `);
 
@@ -353,17 +385,36 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
 
             <span className="text-[#3B2D53]">|</span>
 
-            <span className="font-semibold text-[#B9AECF] hidden sm:inline">Condition:</span>
+            <span className="font-semibold text-[#B9AECF] hidden sm:inline">Report Severity:</span>
             <select
-              value={filterCondition}
-              onChange={e => setFilterCondition(e.target.value)}
+              value={filterReportSeverity}
+              onChange={e => setFilterReportSeverity(e.target.value)}
               className="bg-[#140E22] border border-[#3B2D53] rounded px-1.5 py-0.5 font-medium text-[#F5F3FF] focus:outline-none cursor-pointer"
             >
-              <option value="ALL">All Conditions</option>
-              <option value="Critical">Critical</option>
-              <option value="Poor">Poor</option>
-              <option value="Fair">Fair</option>
-              <option value="Good">Good</option>
+              <option value="ALL">All Severities</option>
+              <option value="Critical">Critical (Red)</option>
+              <option value="High">High (Orange)</option>
+              <option value="Medium">Medium (Yellow)</option>
+              <option value="Low">Low (Green)</option>
+            </select>
+
+            <span className="text-[#3B2D53]">|</span>
+
+            <span className="font-semibold text-[#B9AECF] hidden sm:inline">Report Status:</span>
+            <select
+              value={filterReportStatus}
+              onChange={e => setFilterReportStatus(e.target.value)}
+              className="bg-[#140E22] border border-[#3B2D53] rounded px-1.5 py-0.5 font-medium text-[#F5F3FF] focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="New">New</option>
+              <option value="Reported">Reported</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Verified">Verified</option>
+              <option value="Inspection Scheduled">Inspection Scheduled</option>
+              <option value="Maintenance Planned">Maintenance Planned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
             </select>
           </div>
 
@@ -427,27 +478,24 @@ export const LiveRoadMap: React.FC<LiveRoadMapProps> = ({
         {/* Map Canvas */}
         <div ref={mapContainerRef} className="w-full h-full bg-[#100B1D]" />
 
-        {/* Map Legend Overlay */}
-        <div className="absolute bottom-3 left-3 pointer-events-auto bg-[#211735]/95 backdrop-blur-md px-3 py-2 rounded-lg border border-[#3B2D53] shadow-xs text-[11px] space-y-1 text-[#F5F3FF]">
-          <div className="font-bold text-[#F5F3FF] mb-1">Condition Legend</div>
+        {/* Map Legend Overlay (Section 5.C) */}
+        <div className="absolute bottom-3 left-3 pointer-events-auto bg-[#211735]/95 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-[#3B2D53] shadow-xl text-[11px] space-y-1.5 text-[#F5F3FF]">
+          <div className="font-bold text-[#F5F3FF] border-b border-[#3B2D53] pb-1">Report Severity Markers</div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#FB7185]" />
-            <span className="text-[#B9AECF]">Critical (PCI &lt; 40)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
+            <span className="text-[#B9AECF]">Red: Critical Severity</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F97316]" />
+            <span className="text-[#B9AECF]">Orange: High Severity</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FBBF24]" />
-            <span className="text-[#B9AECF]">Poor (PCI 40–54)</span>
+            <span className="text-[#B9AECF]">Yellow: Medium Severity</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#60A5FA]" />
-            <span className="text-[#B9AECF]">Fair (PCI 55–69)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#34D399]" />
-            <span className="text-[#B9AECF]">Good (PCI 70–100)</span>
-          </div>
-          <div className="pt-1 border-t border-[#3B2D53] flex items-center gap-2 text-[#B9AECF]">
-            <span>⚠️ Issue Ticket</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+            <span className="text-[#B9AECF]">Green: Low Severity</span>
           </div>
         </div>
       </div>

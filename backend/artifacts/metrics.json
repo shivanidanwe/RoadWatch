@@ -1,8 +1,8 @@
 {
   "version": "v2.4-TestRun",
   "algorithm": "RandomForest Classifier & Regressor Ensemble (Scikit-Learn)",
-  "training_date": "2026-10-29 19:10:43",
-  "evaluation_date": "2026-10-29 19:10:43",
+  "training_date": "2026-10-30 15:52:55",
+  "evaluation_date": "2026-10-30 15:52:55",
   "training_samples_count": 1200,
   "test_samples_count": 300,
   "mae": 2.52,
